@@ -1,0 +1,81 @@
+startswith 
+!	<decl_use>: use [1 <name> as <decl_name>]
+!	<comment>
+!		<comment_single_line>: // [* until "\n"] "\n"
+!		<comment_multi_line> /* [* until */] */
+	<statement>
+		<declaration>
+		<assignment>
+		<comparison>
+		<function_call>
+		<control>
+		<multi_line_comment>
+
+		<declaration> ::= <decl_var> | <decl_var_with_assignment> | <decl_complex>
+
+			<decl_var>: [1 token as <decl_type>] [1 token as <decl_name>]
+			
+			<decl_var_with_assignment> ::= <decl_var> "=" <expression>
+			
+				// Returns a value
+				<expression>: 
+!					"(" [1 <expression> until ")"] ")" | 
+!					<constant_value> | 
+					<operation> | 
+					<var_name> | 
+					<function_call>
+
+!					<constant_value>: <number_value> | <string_value> | <bool_value>
+!						<number_value>: <number>
+!							<number>: [optional -] [+ <digit> until .] [optional .[+ <digit>]
+!						<string_value>: """ [* until """] """
+!						<bool_value>: true | false
+						
+					<operation>: <expression> [+ <operator> <expression>]
+!						<operator>: "+" | "-" | "*" | "/" | "."
+						
+					<var_name> ::= <decl_name>
+						
+!				<decl_type> ::= <simple_type_name> | <simple_type_name> <decl_array> | <complex_type_name> | <class_name>
+!					<simple_type_name> ::= int | string | bool
+!					<decl_array> ::= array of <number>
+!						<number> ::= ( "" | "-" ) digit { <digit> } ( "" | "." digit { <digit> } )
+!					<complex_type_name> ::= class | enum
+			
+			<decl_complex> ::= <decl_enum> | <decl_class> | <decl_function>
+				<decl_enum> ::= enum <decl_name> { "," <decl_name> } end
+				<decl_base_class> ::= from <decl_name>
+				<decl_class> ::= class <decl_name> <decl_base_class> { <declaration> } end
+				<decl_function> ::= <decl_type> <decl_name> <decl_params> <block> end
+					<decl_params> ::= "(" <decl_vars> ")" | <decl_vars>
+						<decl_vars> ::= <var_name> { , <var_name> } | ""
+					<block> ::= { <statement> }
+				
+		<assignment> ::= <lvalue> = <expression>
+			<lvalue> ::= <var_name>
+
+		<comparison>: <expression> <comparison_operator> <expression>
+!			<comparison_operator>: "!" | "==" | "<" | "<=" | "=>" | ">" | "or" | "and" | "xor"
+
+		<function_call>: [1 <decl_name>]  in function_table?] "(" [* <param> ending with ","|")"] ")"
+			<param> ::= <expression>
+			
+			
+		<control>: <if> | <for> | <while> | <do> | <switch>
+				
+			<if>: if [1 <expression>] then [1 <block> until else|elsif|end] [* <else_case>] end
+				<else_case>: <else> | <elsif>
+!					<else>: else
+					<elsif>: elsif [1 expression]
+				
+			<for>: for [1 token as <for_variant>] [1 <for_type>] [1 <block> until end] end
+				<for_type>: in [1 var_name] | from [1 expression] to [expression]
+
+			<while>: while [1 <expression] [1 <block> until end] end
+			
+			<do>: do [* <statement> until while] while [1 <expression>]
+			
+			<switch>: switch [1 expression] [* <case> until end] end
+				<case>: case <case_type> [1 block] end
+				<case_type>: default | <expression>
+								

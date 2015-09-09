@@ -43,7 +43,8 @@
 				<decl_class> ::= class <decl_name> <decl_base_class> { <declaration> } end
 				<decl_function> ::= <decl_type> <decl_name> <decl_params> <block> end
 					<decl_params> ::= "(" <decl_vars> ")" | <decl_vars>
-						<decl_vars> ::= <decl_var> { , <decl_var> } | ""
+						//<decl_vars> ::= <decl_name> { , <decl_name> } | ""
+						<decl_vars> ::= <var_name> { , <var_name> } | ""
 					<block> ::= { <statement> }
 				
 		<assignment> ::= <lvalue> = <rvalue>
@@ -57,7 +58,7 @@
 			<params> ::= "" | <param> { "," <param> }
 			<param> ::= <expression>
 			
-		<control>             ::= <if> | <for> | <while> | <do>
+		<control>             ::= <if> | <for> | <while> | <do> | <switch>
 			<if>              ::= if <expression> then <block> { <else> } end
 				<else>        ::= <else_case> <block>
 				<else_case>   ::= else | elsif <expression>
@@ -72,3 +73,5 @@
 	<comment> ::= <comment_single_line> | <comment_multi_line>"
 		<comment_single_line> ::= // { <*> } "\n"
 		<comment_multi_line> ::= "/*" { <*> } "*/"
+
+// TODO: Objects
