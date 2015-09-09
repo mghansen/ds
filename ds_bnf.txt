@@ -1,0 +1,74 @@
+<document> ::= { <decl_use> | <statement> | <comment> }
+
+	<decl_use> ::= use <decl_name>
+		<decl_name> ::= <name>
+			<name> ::= <alpha_and> { <alphanumeric> }
+				<alpha_and> ::= <alpha> | "_"
+					<alpha> ::= a..z
+				<alphanumeric> ::= <alpha_and> | <digit>
+				<digit> ::= 0..9
+		
+	<statement> ::= <declaration> | <assignment> | <comparison> | <function_call> | <control> | <comment> | <multi_line_comment>
+
+		<declaration> ::= <decl_var> | <decl_var_with_assignment> | <decl_complex>
+
+			<decl_var> ::= <decl_type> <var_name>
+			
+			<decl_var_with_assignment> ::= <decl_var> "=" <expression>
+			
+				// Returns a value
+				<expression> ::= "(" <expression> ")" | <constant_value> | <operation> | <var_name> | <function_call>  // expressions return a value
+					<constant_value> ::= <number_value> | <string_value> | <bool_value>
+						<number_value> ::= <number>
+						<string_value> ::= """ { <any_character> } """
+							<any_characters> ::= *
+						<bool_value> ::= trye | false
+						
+					// Returns a value
+					<operation> ::= <operand> <operator> <operand> | "(" <operand> <operator> <operand> ")"
+						<operand> ::= <var_name> | <number> | <operation>
+						<operator> ::= "+" | "-" | "*" | "/" | "."
+						
+					<var_name> ::= <decl_name>
+						
+				<decl_type> ::= <simple_type_name> | <simple_type_name> <decl_array> | <complex_type_name>
+					<simple_type_name> ::= int | string | bool
+					<decl_array> ::= array of <number>
+						<number> ::= ( "" | "-" ) digit { <digit> } ( "" | "." digit { <digit> } )
+					<complex_type_name> ::= class | enum
+			
+			<decl_complex> ::= <decl_enum> | <decl_class> | <decl_function>
+				<decl_enum> ::= enum <decl_name> { "," <decl_name> } end
+				<decl_base_class> ::= from <decl_name>
+				<decl_class> ::= class <decl_name> <decl_base_class> { <declaration> } end
+				<decl_function> ::= <decl_type> <decl_name> <decl_params> <block> end
+					<decl_params> ::= "(" <decl_vars> ")" | <decl_vars>
+						<decl_vars> ::= <decl_var> { , <decl_var> } | ""
+					<block> ::= { <statement> }
+				
+		<assignment> ::= <lvalue> = <rvalue>
+			<lvalue> ::= <var_name>
+			<rvalue> ::= <expression>
+
+		<comparison> ::= <expression> <comparison_operator> <expression>
+			<comparison_operator> ::= "!" | "==" | "<" | "<=" | "=>" | ">" | "or" | "and" | "xor"
+
+		<function_call> ::= <decl_name> ( <params> ) | <decl_name> <params>
+			<params> ::= "" | <param> { "," <param> }
+			<param> ::= <expression>
+			
+		<control>             ::= <if> | <for> | <while> | <do>
+			<if>              ::= if <expression> then <block> { <else> } end
+				<else>        ::= <else_case> <block>
+				<else_case>   ::= else | elsif <expression>
+			<for>             ::= for <for_variant> <for_type> <block> end
+				<for_variant> ::= <decl_name>
+				<for_type>    ::= in <var_name> | from <expression> to <expression>
+			<while>           ::= while <expression> <block> end
+			<do>              ::= do { <statement> } while <expression>
+			<switch>          ::= switch <expression> { <case> } end
+				<case>            ::= case ( <expression> | default ) ":" <block> end
+								
+	<comment> ::= <comment_single_line> | <comment_multi_line>"
+		<comment_single_line> ::= // { <*> } "\n"
+		<comment_multi_line> ::= "/*" { <*> } "*/"
