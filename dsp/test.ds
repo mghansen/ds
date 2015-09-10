@@ -1,0 +1,111 @@
+use sampleLib
+
+func print(whatever)
+	// TODO: Libraries
+end
+
+func seven()
+	return 7
+end
+
+//----------------------------------------------------------------------------------------------------
+
+func main(params)
+
+	for p in params
+		print(p)
+	end
+	
+	a = 5
+	for i from a to (a + 3) * 2
+		print(i)
+	end
+	
+	// This is a comment
+	if a  == 6 then
+		print(10)
+	else
+		print("This is a string.")
+	end
+	
+	while 7 > a
+		a = a + 1
+		// Here's a comment
+	end
+	
+	b = 1
+	c = b < a
+	if c then
+		c = seven()
+	end
+	
+	a7 = "seven"
+	if("seven" == a7)
+		a7 = true
+	end
+	
+	do
+		print(seven() + (b - 6))
+		b = b * 2
+	while b < 1000 * 10
+	
+	q = "donuts"
+	switch "donuts"
+		case "fritters":
+			print("fritters will now print twice")
+		case "bacon":
+			print("fritters for the last time")
+		case q:
+			print("This is the real answer.")
+		end
+	end
+	
+	c = MyClass(17)
+	c = MyOtherClass()
+	c = 0 // destroys c
+
+end
+
+//----------------------------------------------------------------------------------------------------
+
+class MyClass
+	var value_
+	
+	/* This is a comment that spans lines.
+	 * It's a few lines long. // This is also part of the multi-line comment.
+	 * It ends here: */
+	
+	func MyClass(value)
+		value_ = value * 2
+		return "This return value will be ignored. This is the constructor."
+	end
+	
+	func get()
+		return value_
+	end
+end
+
+//----------------------------------------------------------------------------------------------------
+
+class MyOtherClass from MyClass
+
+	func MyOtherClass
+		parent(7)
+	end
+	
+	func ~MyOtherClass
+		print("I've seen things you people wouldn't believe.")
+	end
+	
+	func moreThanOneParam(one, two, three)
+		one = 1
+		print(two)
+		three // Does nothing
+	end
+	
+	func get(brave, little, toaster)
+		// This overrides the function in MyClasss.
+		return parent.get()
+	end
+	
+end
