@@ -34,7 +34,7 @@ var
 	comment_multi_line (comment) > /*...
 + - * / .
 	previous expression is now part of an operation
-! < <= == >= and or xor
+! < <= == >= && || ^
 	previous expression is now part of a comparison
 if
 	if (control) (statement) > if expression then statement

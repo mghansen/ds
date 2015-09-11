@@ -1,9 +1,8 @@
 <decl_name> ::= <name> | <name> "." <decl_name>
-	<name> ::= <alpha_and> { <alphanumeric> }
-		<alpha_and> ::= <alpha> | "_"
-			<alpha> ::= a..z
-		<alphanumeric> ::= <alpha_and> | <digit>
+	<name> ::= <alpha> { <alphanumeric> }
+		<alpha> ::= a..z
 		<digit> ::= 0..9
+		<alphanumeric> ::= <alpha_and> | <digit>
 
 <document> ::= { <statement> | <decl_use> }
 
@@ -42,7 +41,7 @@
 			// rvalue
 			<operation> ::= <expression> <operator> <expression>
 				<operator> ::= <arithmetic_operator> | <logical_operator>
-					<arithmetic_operator> ::= "!" | "<" | "<=" | "==" | ">" | ">=" | "and" | "or" | "xor"
+					<arithmetic_operator> ::= "!" | "<" | "<=" | "==" | ">" | ">=" | "&&" | "||" | "^"
 					<logical_operator> ::= "+" | "-" | "*" | "/" | "."
 
 			// rvalue

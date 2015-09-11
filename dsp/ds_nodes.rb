@@ -1,34 +1,3 @@
-# DSParserState ####################################################################################################
-
-class DSParserState
-
-	attr_accessor :currentIndex, :numConsumed
-	
-	def initialize(tokens)
-		@tokens = tokens
-		@currentIndex = 0
-		@numConsumed = 0
-	end
-	
-	def consume(howManyTokens)
-		@currentIndex += howManyTokens
-	end
-	
-	def getNumTokens()
-		@tokens.size()
-	end
-	
-	def get(index)
-		# TODO: Bounds check
-		@tokens[index]
-	end
-
-	def getFromCurrent(offsetFromCurrent = 0)
-		get(@currentIndex + offsetFromCurrent)
-	end
-	
-end
-
 # DSObject ####################################################################################################
 
 class DSNode

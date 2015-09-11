@@ -108,4 +108,4 @@ class MyOtherClass from MyClass
 		return parent.get()
 	end
 	
-end
+end	
