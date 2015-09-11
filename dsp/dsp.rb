@@ -15,7 +15,7 @@ def dspMain
 	parser.loadFile("test.ds")
 	parser.tokenizeLines
 	
-	puts parser.getTokens
+	#puts parser.getTokens
 	
 end
 

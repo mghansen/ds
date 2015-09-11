@@ -1,5 +1,42 @@
 require 'forwardable'
 
+# CharDetails ####################################################################################################
+
+class CharDetails
+
+	attr_reader :char, :isAlpha, :isDigit, :isWhitespace, :isPunctuation, :isQuote, :isOther
+
+	@@alpha = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"
+	@@digit = "0123456789"
+	@@whitespace = " \t\n"
+	@@punctuation = "()!<=>+-*/.,"
+	@@doubles = [ "<<", "<=", "==", ">=", ">>", "&&", "||", "//", "/*", "*/" ]
+	
+	def initialize(char)
+		@char = char
+		@isAlpha = @@alpha.include?(char)
+		@isDigit = @@digit.include?(char)
+		@isWhitespace = @@whitespace.include?(char)
+		@isPunctuation = @@punctuation.include?(char)
+		@isQuote = char == '"'
+		@isOther = !isAlpha && !isDigit && !isWhitespace && !isPunctuation && !@isQuote
+	end
+	
+	def to_s
+		output = "-" + char if isAlpha
+		output = "=" + char if isDigit
+		output = "_" + char if isWhitespace
+		output = "`" + char if isPunctuation
+		output = "~" + char if isOther
+		output
+	end
+	
+	def self.isDouble(combined)
+		@@doubles.include?(combined)
+	end
+		
+end
+
 # Parser ####################################################################################################
 
 class Parser
@@ -22,9 +59,12 @@ class Parser
 	end
 	
 	def tokenizeLine(line) 
+	
+		# doubles = [ "<<", "<=", "==", ">=", ">>", "&&", "||" ]
 		
 		# Get array of CharDetails
 		chars = Array.new
+		line = line + ' '
 		line.split("").each do |c|
 			details = CharDetails.new(c)
 			chars.push(details)
@@ -41,7 +81,7 @@ class Parser
 		submission = ""
 
 		chars.each_with_index do |item, index|
-			#printf "#{index}: #{item.to_s}\n"
+			# printf "#{index}: #{item.to_s}"
 			
 			if skip > 0
 				skip -= 1
@@ -59,53 +99,68 @@ class Parser
 			else
 				after = CharDetails.new(" ")
 			end
-			
+
 			if state == stateReady
+				# printf "(20) "
 				if not item.isWhitespace
-					combined = item.char + after.char
+					# printf "(30) "
+					combined = "{#item.char}{#after.char}"
 					if item.isQuote
+						# printf "(31) "
 						state = stateInQuotes
 						token = ""
-					elsif CharDetails::isDouble(combined)
+					elsif CharDetails.isDouble(combined)
+						# printf "(32) "
 						submission = combined
+						# printf "(7) "
 						skip = 1
 					else
+						# printf "(33) "
 						state = stateInToken
 						token = item.char
 						if item.isDigit or item.char == '-' # -= already handled by isDouble
+							# printf "(34) "
 							inNumber = true
 						end
 					end
 				end
 				
 			elsif state == stateInQuotes
+				# printf "(21) "
 				if item.isQuote or "\r\n".include?(item.char) # break on newline
 					if(token.size > 0)
 						submission = token
+						# printf "(8) "
 					end
 					state = stateReady
 				end
 				
 			elsif state == stateInToken
-			
+				# printf "(22) "
 				if item.isWhitespace
 					submission = token
+					# printf "(9) "
 				elsif item.isAlpha
 					if prev.isAlpha or (prev.isDigit and not inNumber)
+						# printf "(1) "
 						token << item.char
 					else
 						submission = token
+						# printf "(10) "
 						token = item.char
 					end
 				elsif item.isDigit
 					if not inNumber
 						if prev.isAlpha or prev.isDigit
+							# printf "(2) "
 							token << item.char
 						else
 							submission = token
+							# printf "(3) "
 							token << item.char
 						end
 					else
+						# printf "(4) "
 						token << item.char
 					end
 				elsif item.isQuote
@@ -113,18 +168,23 @@ class Parser
 					token = ""
 				elsif item.isPunctuation
 					if item.char == '.' and inNumber
+						# printf "(5) "
 						token << item.char
 					else
 						submission = token
+						# printf "(6) "
 						token = item.char
 					end
 				else
 						# nothing
 				end
-					
+				
+			else
+				printf "(23) "
 			end #state
 			
-			if submission.size
+			if submission.size > 0
+				puts "<" + submission + ">"
 				@tokenList.add(submission)
 				state = stateReady
 				submission = ""
@@ -187,42 +247,4 @@ class TokenList
 
 end
 
-# CharDetails ####################################################################################################
-
-class CharDetails
-
-	attr_reader :char, :isAlpha, :isDigit, :isWhitespace, :isPunctuation, :isQuote, :isOther
-
-	@@alpha = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"
-	@@digit = "0123456789"
-	@@whitespace = " \t\n"
-	@@punctuation = "()!<=>+-*/.,"
-	@@doubles = [ "<<", "<=", "==", ">=", ">>", "&&", "||" ]
-	
-	def initialize(char)
-		@char = char
-		@isAlpha = @@alpha.include?(char)
-		@isDigit = @@digit.include?(char)
-		@isWhitespace = @@whitespace.include?(char)
-		@isPunctuation = @@punctuation.include?(char)
-		@isQuote = char == '"'
-		@isOther = !isAlpha && !isDigit && !isWhitespace && !isPunctuation && !@isQuote
-	end
-	
-	def to_s
-		output = "-" + char if isAlpha
-		output = "=" + char if isDigit
-		output = "_" + char if isWhitespace
-		output = "`" + char if isPunctuation
-		output = "~" + char if isOther
-		output
-	end
-	
-	def self.isDouble(combined)
-		@@doubles.include?(combined)
-	end
-		
-end
-
-
-
+# TODO: Just remove comments in the tokenizer?
