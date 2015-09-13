@@ -1,3 +1,24 @@
+to (a + 3)
+to(b+0)
+for i from a to (a + 3) * 2
+print(10)
+print("This is a string.")
+
+"\n"
+"\\n"
+
+
+one/*two*/three
+alpha/*bravo
+charlie
+delta*/easter*/
+friday/*gatsby/*hipster/*india*/just
+one
+two
+newline
+
++= asdf==qwdf qwdf== ==asdktj ++i /* asdf */ after
+
 use sampleLib
 
 func print(whatever)

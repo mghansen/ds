@@ -10,7 +10,13 @@ class CharDetails
 	@@digit = "0123456789"
 	@@whitespace = " \t\n"
 	@@punctuation = "()!<=>+-*/.,"
-	@@doubles = [ "<<", "<=", "==", ">=", ">>", "&&", "||", "//", "/*", "*/" ]
+	@@doubles = [ "<<", "<=", "==", ">=", ">>", "&&", "||", 
+					"++", "--", "+=", "-=", "*=", "/=", 
+					"//", "/*", "*/", "\\\\", "\\r", "\\n" ]
+	# Currently, all comment indicators must have length 2
+	@@singleLineCommentStart = [ "//" ]
+	@@multiLineCommentStart = [ "/*" ]
+	@@multiLineCommentEnd = [ "*/" ]
 	
 	def initialize(char)
 		@char = char
@@ -23,14 +29,32 @@ class CharDetails
 	end
 	
 	def to_s
-		output = "-" + char if isAlpha
-		output = "=" + char if isDigit
-		output = "_" + char if isWhitespace
-		output = "`" + char if isPunctuation
-		output = "~" + char if isOther
-		output
+		char
+		# output = ""
+		# output << "-" + char if isAlpha
+		# output << "=" + char if isDigit
+		# output << "_" + char if isWhitespace
+		# output << "`" + char if isPunctuation
+		# output << "~" + char if isOther
+		# output << char
 	end
 	
+	def getChar ()
+		char
+	end
+	
+	def self.isSingleLineCommentStart(char)
+		@@singleLineCommentStart.include?(char)
+	end
+	
+	def self.isMultiLineCommentStart(char)
+		@@multiLineCommentStart.include?(char)
+	end
+
+	def self.isMultiLineCommentEnd(char)
+		@@multiLineCommentEnd.include?(char)
+	end
+
 	def self.isDouble(combined)
 		@@doubles.include?(combined)
 	end
@@ -39,15 +63,34 @@ end
 
 # Parser ####################################################################################################
 
+def dbg text
+#	puts text
+end
+
 class Parser
 
+	#attr_accessor :inMultiLineComment
+	
+	@@stateReady = 1
+	@@stateInQuotes = 2
+	@@stateInToken = 3	
+	@@stateInComment = 4 
+	
 	def initialize
 		@lineList = LineList.new
 		@tokenList = TokenList.new
 		@currentIndex = 0
 		@numConsumed = 0
+		@inMultiLineComment = false
 	end
-		
+	
+	def getInMultiLineComment()
+		@inMultiLineComment
+	end
+	def setInMultiLineComment(val)
+		@inMultiLineComment = val
+	end
+	
 	def loadFile(filename)
 		input_file = File.new(filename, 'r')
 		input_file.each_line { |line| @lineList.add(line) }
@@ -60,7 +103,10 @@ class Parser
 	
 	def tokenizeLine(line) 
 	
-		# doubles = [ "<<", "<=", "==", ">=", ">>", "&&", "||" ]
+		dbg "inMultiLineComment at start of function" if getInMultiLineComment()
+		return if line.size == 0
+		
+		dbg ":::::: #{line}"
 		
 		# Get array of CharDetails
 		chars = Array.new
@@ -69,129 +115,192 @@ class Parser
 			details = CharDetails.new(c)
 			chars.push(details)
 		end
-		# chars.each { |c| printf c.to_s }
-		
-		stateReady = 1
-		stateInQuotes = 3
-		stateInToken = 2
-		state = stateReady
+
+		state = getInMultiLineComment() ? @@stateInComment : @@stateReady
 		token = ""
-		skip = 0
+		numCharsToSkip = 0
 		inNumber = false
-		submission = ""
+		seenDecimalPoint = false
+		setOpenQuoteFlag = false
+		submissions = []
+		index = 0
 
 		chars.each_with_index do |item, index|
-			# printf "#{index}: #{item.to_s}"
+			#printf "#{'%03d' % index}:#{item.to_s}:"
 			
-			if skip > 0
-				skip -= 1
+			if numCharsToSkip > 0
+				numCharsToSkip -= 1
+				dbg "\n"
 				next
 			end
 
 			if(index == 0)
-				prev =  CharDetails.new(" ")
+				prev = CharDetails.new(" ")
 			else
 				prev = chars[index - 1]
 			end
 			
-			if(index < chars.size)
+			after = CharDetails.new(" ")
+			if(index < chars.size - 1)
 				after = chars[index + 1]
-			else
-				after = CharDetails.new(" ")
 			end
+			#combined = ""
+			#combined << "#{item.getChar()}"
+			#combined << "#{after.getChar()}"
+			combined = "#{item.getChar()}#{after.getChar()}"
 
-			if state == stateReady
-				# printf "(20) "
+			if state == @@stateInComment
+				if getInMultiLineComment()
+					if CharDetails.isMultiLineCommentEnd(combined)
+						dbg "case ending multi line comment"
+						setInMultiLineComment(false)
+						state = @@stateReady
+						numCharsToSkip = 1
+					else
+						dbg "case not yet comment end"
+					end
+				else
+					dbg "case in comment but not multi-line"
+				end
+				
+			elsif state == @@stateReady
 				if not item.isWhitespace
-					# printf "(30) "
-					combined = "{#item.char}{#after.char}"
 					if item.isQuote
-						# printf "(31) "
-						state = stateInQuotes
+						dbg "case starting new token and start with quotes"
+						state = @@stateInQuotes
 						token = ""
 					elsif CharDetails.isDouble(combined)
-						# printf "(32) "
-						submission = combined
-						# printf "(7) "
-						skip = 1
+						dbg "case starting new token and start with double"
+						submissions.push combined
+						token = ""
+						numCharsToSkip = 1
 					else
-						# printf "(33) "
-						state = stateInToken
+						state = @@stateInToken
 						token = item.char
-						if item.isDigit or item.char == '-' # -= already handled by isDouble
-							# printf "(34) "
+						if item.isDigit or item.char.eql? '-' # -= already handled by isDouble
+							dbg "case starting new token and it's a number"
 							inNumber = true
+						else
+							dbg "case starting new token and it could be alpha, punctuation, or other"
 						end
 					end
-				end
-				
-			elsif state == stateInQuotes
-				# printf "(21) "
-				if item.isQuote or "\r\n".include?(item.char) # break on newline
-					if(token.size > 0)
-						submission = token
-						# printf "(8) "
+				else
+					dbg "case whitespace"
+					if token.size > 0
+						submissions.push token
+						token = ""
 					end
-					state = stateReady
 				end
 				
-			elsif state == stateInToken
-				# printf "(22) "
+			elsif state == @@stateInQuotes
+				dbg "case already inside quotes"
+				if item.isQuote or "\r\n".include?(item.char) # break on newline"
+					if(token.size > 0)
+						dbg "case breaking quote on close quote or newline"
+						submissions.push '"' + token + '"'
+						token = ""
+					else
+						dbg "case breaking quote on close quote or newline but the string was empty"
+					end
+					state = @@stateReady
+				else
+					dbg "case inside quotes and we're still going"
+					token << item.char
+				end
+				
+			elsif state == @@stateInToken
 				if item.isWhitespace
-					submission = token
-					# printf "(9) "
+					dbg "case this token just ended on whitespace"
+					submissions.push token
+					token = ""
 				elsif item.isAlpha
 					if prev.isAlpha or (prev.isDigit and not inNumber)
-						# printf "(1) "
+						dbg "case alpha continuation of an alphanumeric"
 						token << item.char
 					else
-						submission = token
-						# printf "(10) "
+						dbg "case alpha breaking token after other"
+						submissions.push token
 						token = item.char
 					end
 				elsif item.isDigit
 					if not inNumber
 						if prev.isAlpha or prev.isDigit
-							# printf "(2) "
+							dbg "case digit continuation of an alphanumeric"
 							token << item.char
 						else
-							submission = token
-							# printf "(3) "
-							token << item.char
+							dbg "case digit breaking token after other"
+							submissions.push token
+							token = item.char
 						end
 					else
-						# printf "(4) "
+						dbg "case digit continuing a number"
 						token << item.char
 					end
 				elsif item.isQuote
-					submission = token
+					dbg "case open quote inside of a token"
+					submissions.push token
 					token = ""
-				elsif item.isPunctuation
-					if item.char == '.' and inNumber
-						# printf "(5) "
+					setOpenQuoteFlag = true
+				elsif item.isPunctuation or item.isOther
+					if item.char.eql? '.' and inNumber and not seenDecimalPoint and prev.isDigit
+						dbg "case first decimal point in number"
 						token << item.char
+						seenDecimalPoint = true
+					elsif CharDetails.isDouble(combined)
+						dbg "case double breaks last token"
+						submissions.push token
+						submissions.push combined
+						numCharsToSkip = 1
+						token = ""						
 					else
-						submission = token
-						# printf "(6) "
-						token = item.char
+						dbg "case other breaks last token"
+						submissions.push token
+						submissions.push item.char
+						token = ""
 					end
 				else
-						# nothing
+					dbg "case state is stateInToken but we sould never reach this case"
 				end
 				
 			else
-				printf "(23) "
+				dbg "case unknown state"
 			end #state
 			
-			if submission.size > 0
-				puts "<" + submission + ">"
-				@tokenList.add(submission)
-				state = stateReady
-				submission = ""
-				inNumber = false
+			submissions.each do |s|
+				if s.size > 0
+					if CharDetails.isSingleLineCommentStart s
+						dbg "     :case start single line comment\n"
+						#printf"\n\n"
+						return # no need to clear token or set state to @stateIsComment
+					elsif CharDetails.isMultiLineCommentStart s
+						setInMultiLineComment(true)
+						dbg "     :case start multi line comment"
+						state = @@stateInComment
+						numCharsToSkip = 1
+					else
+						puts "     >" + s
+						@tokenList.add(s)
+						state = @@stateReady
+					end
+					inNumber = false
+					seenDecimalPoint = false
+				end
 			end
+			submissions.clear
+			
+			state == @@stateInQuotes if setOpenQuoteFlag
+			setOpenQuoteFlag = false
 
 		end # each
+		
+		dbg "inMultiLineComment at end of function" if getInMultiLineComment()
+		#printf"\n"
+		
+	end
+	
+	def showTokens()
+		@tokenList.each { |t| printf "#{t} " }
+		printf "\n"
 	end
 	
 	def getTokens()
