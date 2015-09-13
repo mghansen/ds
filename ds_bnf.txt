@@ -1,71 +1,65 @@
-<decl_name> ::= <name> | <name> "." <decl_name>
-	<name> ::= <alpha> { <alphanumeric> }
-		<alpha> ::= a..z
-		<digit> ::= 0..9
-		<alphanumeric> ::= <alpha_and> | <digit>
+<alphanumeric> ::= <alpha> | <digit>
+	<alpha> ::= a..z
+	<digit> ::= 0..9
 
-<document> ::= { <statement> | <decl_use> }
+<name> ::= <alpha> { <alphanumeric> }
+<var_name> ::= <name>
+<function_name> ::= <name>
+<class_name> ::= name
+<enum_name> ::= name
+<file_name> ::= name
+<call_name> ::= <function_name> | <class_name> "." <function_name>
 
-	<decl_use> ::= use <decl_name>
+<document> ::= { <decl_use> | <statement> }
 
-	<statement> ::= ""?| <declaration> | <expression> | <assignment> | <control> | <return> | <comment>
+	<decl_use> ::= use <file_name>
+
+	<statement> ::= <assignment> | <declaration> | <expression> | <control> | <comment>
+
+		<assignment> ::= <var_name> '=' <expression> // Can be function call to class name
 
 		<declaration> ::= <assignment> | <decl_complex>
-
-			<assignment> ::= <decl_name> "=" <expression> // Can be function call to class name
-
 			<decl_complex> ::= <decl_enum> | <decl_class> | <decl_function>
-			
-				<decl_enum> ::= enum <decl_name> <decl_name> { "," <decl_name> } end
-					
-				<decl_class> ::= class <decl_name> <decl_base_class> { <decl_function> | <decl_member> } end
-					<decl_base_class> ::= from <decl_name>
-					<decl_member> ::= var <decl_name>
-				<decl_function> ::= func <decl_name> ( <decl_params> ) <block> end
-					<decl_params> ::= <decl_name> { , <decl_name> }
+				<decl_enum> ::= enum <enum_name> <var_name> { ',' <var_name> } end
+				<decl_class> ::= class <class_name> <decl_base_class> { <decl_function> | <decl_member> } end
+					<decl_base_class> ::= from <class_name>
+					<decl_member> ::= var <var_name> // assignment?
+				<decl_function> ::= function <function_name> ( <decl_params> ) <block> end
+					<decl_params> ::= <var_name> { , <var_name> }
 					<block> ::= { <statement> }
 
 		// rvalue
-		<expression> ::= "(" <expression> ")" | <constant_value> | <variable> | <operation> | <function_call>
+		<expression> ::= '(' <expression> ')' | <constant_value> | <var_name> | <operation> | <function_call>
 		
-			// rvalue
 			<constant_value> ::= <number_value> | <string_value> | <bool_value>
 				<number_value> ::= <number>
-				<string_value> ::= """ { <any_character> } """
-					<any_characters> ::= *
-				<bool_value> ::= trye | false
+				<string_value> ::= '"'...'"'
+				<bool_value> ::= true | false
 				
-			// rvalue
-			<variable> ::= <decl_name>
-		
-			// rvalue
 			<operation> ::= <expression> <operator> <expression>
 				<operator> ::= <arithmetic_operator> | <logical_operator>
 					<arithmetic_operator> ::= "!" | "<" | "<=" | "==" | ">" | ">=" | "&&" | "||" | "^"
 					<logical_operator> ::= "+" | "-" | "*" | "/" | "."
 
-			// rvalue
-			<function_call> ::= <function_type> ( <params> )
-				<function_type> ::= <decl_name> | <return> | break | continue
-				<built_in_functions> ::= <return> | break | continue
+			<function_call> ::= <function_message_name> ( <params> )
+				<function_message_name> ::= <call_name> | <built_in_function>
+				<built_in_function> ::= <return> | break | continue
 					<return> ::= return <expression>
 				<params> ::= <expression> { , <expression> }
 			
 		<control>             ::= <if> | <for> | <while> | <do> | <switch>
-			<if>              ::= if <expression> then <block> { <else> } end
+			<if>              ::= if '(' <expression> ')' <block> { <else> } end
 				<else>        ::= <else_case> <block>
-				<else_case>   ::= else | elsif <expression>
+				<else_case>   ::= else | elsif '(' <expression> ')'
 			<for>             ::= <for_in> | <for_from>
-			<for_in>          ::= for <for_variant> in <decl_name> <block> end
-			<for_from>        ::= for <for_variant> from <expression> to <expression> <block> end     // needs to be changed
-				<for_variant> :== <decl_name>
-			<while>           ::= while <expression> <block> end
-			<do>              ::= do <block> while <expression>
-			<switch>          ::= switch <expression> { <case> } end
-				<case>            ::= case ( <expression> | default ) ":" <block> end
+			<for_in>          ::= for <for_variant> in <var_name> do <block> end
+			<for_from>        ::= for <for_variant> from <expression> to <expression> do <block> end
+				<for_variant> :== <var_name>
+			<while>           ::= while '(' <expression> ')' do <block> end
+			<do>              ::= do <block> while '(' <expression> ')'
+			<switch>          ::= switch '(' <expression> ')' { <case> } end
+				<case>            ::= case '(' <expression> | default ')' <block> end
 				
-	<comment> ::= <comment_single_line> | <comment_multi_line>"
-		<comment_single_line> ::= // { <*> } "\n"
-		<comment_multi_line> ::= "/*" { <*> } "*/"
-
-// TODO: Objects (parents, values, functions), Libraries
+		<comment> ::= <comment_single_line> | <comment_multi_line>"
+			<comment_single_line> ::= //..."\n"
+			<comment_multi_line> ::= "/*"..."*/"

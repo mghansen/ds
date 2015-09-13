@@ -13,8 +13,7 @@ def dspMain
 	
 	parser = Parser.new
 	parser.loadFile("test.ds")
-	parser.tokenizeLines
-	parser.showTokens()	
+	parser.tokenize()
 	
 end
 
