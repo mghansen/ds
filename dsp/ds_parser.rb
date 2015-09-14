@@ -33,6 +33,8 @@ class Parser
 		tokenList = @tokenizer.getTokenList()
 		i = 0
 		while i < tokenList.getSize - 1 do
+
+			puts i
 		
 			tokens = tokenList.getFrom(i)
 			element = Statement.parse tokens # TODO: More than one document
@@ -45,7 +47,9 @@ class Parser
 			else
 				dbgParser "> \"#{tokens[0]}...\" consumed #{element.consumed()}"
 				@elements.push(element)
-				i += element.consumed().to_i
+				inc = element.consumed().to_i
+				puts inc
+				i += (inc == 0) ? 1 : inc
 			end
 		end
 		

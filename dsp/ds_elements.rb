@@ -1,7 +1,12 @@
+
 # DSObject ####################################################################################################
 
 class DSObject
 	attr_reader :consumed
+	
+	@@keywords = 
+			[ "use", "enum", "end", "class", "from", "func", "true", "false", "return", "if", "else", "elsif", 
+				"for", "in", "do", "from", "to", "while", "switch", "case" ]
 	
 	def initialize
 		@name = ""
@@ -31,6 +36,8 @@ class DSObject
 	end
 	
 	def self.parse tokens 
+		puts "Default DSObject parse"
+		invalid()
 	end
 	
 	def evaluate
@@ -111,10 +118,27 @@ class Statement < DSObject
 	
 	def self.parse tokens	
 		if tokens[0].eql?("use")
+			puts "USE"
 			element = Use.parse(tokens)
-			return element
+		elsif ["enum", "class", "func" ].include?(tokens[0])
+			puts "DECLARATION"
+			element = Declaration.parse tokens
+			puts "after Declaration.parse"
+			consume 3
+		elsif ["if", "for", "while", "do", "switch" ].include?(tokens[0])
+			puts "CONTROL"
+			element = Control.parse tokens
+			consume 4
+		elsif tokens[1] == '='
+			puts "ASSIGNMENT"
+			element = Assignment.parse tokens
+			consume 3
+		else
+			puts "EXPRESSION"
+			element = Expression.parse tokens
+			consume 1
 		end
-		invalid()
+		element
 	end
 end
 
@@ -129,9 +153,8 @@ class Use < Statement
 	def self.parse tokens
 		if tokens[0].eql? "use" and tokens.size > 1
 			element = Use.new(tokens[1])
-			return element
 		end
-		invalid()
+		element
 	end
 end
 
@@ -146,6 +169,10 @@ end
 class Declaration < Statement
 	def initialize
 		super
+		puts "class Declaration initialize"
+	end
+	def self.parse tokens
+		invalid()
 	end
 end
 
