@@ -10,17 +10,18 @@
 <file_name> ::= name
 <call_name> ::= <function_name> | <class_name> "." <function_name>
 
-<document> ::= { <decl_use> | <statement> }
+<document> ::= { <statement> }
 
-	<decl_use> ::= use <file_name>
+	<statement> ::= decl_use | <assignment> | <declaration> | <expression> | <control> | <comment>
 
-	<statement> ::= <assignment> | <declaration> | <expression> | <control> | <comment>
-
+		<decl_use> ::= use <file_name>
+		
 		<assignment> ::= <var_name> '=' <expression> // Can be function call to class name
 
-		<declaration> ::= <assignment> | <decl_complex>
+		<declaration> ::= <decl_complex>
 			<decl_complex> ::= <decl_enum> | <decl_class> | <decl_function>
-				<decl_enum> ::= enum <enum_name> <var_name> { ',' <var_name> } end
+				<decl_enum> ::= enum <enum_name> <enum_value> { ',' <enum_value> } end
+					<enum_value> ::= <var_name>
 				<decl_class> ::= class <class_name> <decl_base_class> { <decl_function> | <decl_member> } end
 					<decl_base_class> ::= from <class_name>
 					<decl_member> ::= var <var_name> // assignment?
@@ -48,9 +49,10 @@
 				<params> ::= <expression> { , <expression> }
 			
 		<control>             ::= <if> | <for> | <while> | <do> | <switch>
-			<if>              ::= if '(' <expression> ')' <block> { <else> } end
-				<else>        ::= <else_case> <block>
-				<else_case>   ::= else | elsif '(' <expression> ')'
+			<if>              ::= if ( <condition_if> ) { <condition_else> ) end
+				<condition_if>    ::= if <condition>
+				<condition_else>  ::= ( elsif | else if ) <condition>
+				<condition>       ::= '(' <expression> ')' <block>
 			<for>             ::= <for_in> | <for_from>
 			<for_in>          ::= for <for_variant> in <var_name> do <block> end
 			<for_from>        ::= for <for_variant> from <expression> to <expression> do <block> end

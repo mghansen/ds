@@ -1,12 +1,16 @@
 require 'forwardable'
 
+$verbose = false
+
 def dbg text
-#	puts text
+	puts text if $verbose
 end
 
-# Parser ####################################################################################################
+# Tokenizer ####################################################################################################
 
 class Tokenizer
+
+	@@stateNone = 0
 	@@stateReady = 1
 	@@stateInQuotes = 2
 	@@stateInToken = 3	
@@ -15,10 +19,14 @@ class Tokenizer
 	def initialize
 		@tokenList = TokenList.new
 		@currentIndex = 0
-		@numConsumed = 0
 		@inMultiLineComment = false
+		@ignoreAll = false
 	end
 	
+	def getTokenList()
+		@tokenList
+	end
+
 	def getInMultiLineComment()
 		@inMultiLineComment
 	end
@@ -33,6 +41,7 @@ class Tokenizer
 	
 	def tokenizeLine(line) 
 	
+		return if @ignoreAll
 		dbg "inMultiLineComment at start of function" if getInMultiLineComment()
 		return if line.size == 0
 		
@@ -54,9 +63,10 @@ class Tokenizer
 		setOpenQuoteFlag = false
 		submissions = []
 		index = 0
+		nextState = @@stateNone
 
 		chars.each_with_index do |item, index|
-			#printf "#{'%03d' % index}:#{item.to_s}:"
+			printf "#{'%03d' % index}:#{item.to_s}:" if $verbose
 			
 			if numCharsToSkip > 0
 				numCharsToSkip -= 1
@@ -147,6 +157,7 @@ class Tokenizer
 						dbg "case alpha breaking token after other"
 						submissions.push token
 						token = item.char
+						nextState = @@stateInToken
 					end
 				elsif item.isDigit
 					if not inNumber
@@ -204,9 +215,18 @@ class Tokenizer
 						state = @@stateInComment
 						numCharsToSkip = 1
 					else
-						puts "     >" + s
+						puts "     >" + s if $verbose
+						if s.eql? "DIEDIEDIE"
+							@ignoreAll = true
+							return
+						end
 						@tokenList.add(s)
-						state = @@stateReady
+						if nextState == @@stateNone
+							state = @@stateReady
+						else
+							state = nextState
+							nextState = @@stateNone
+						end
 					end
 					inNumber = false
 					seenDecimalPoint = false
@@ -230,10 +250,6 @@ class Tokenizer
 		printf "\n"
 	end
 	
-	def getTokens()
-		@tokenList
-	end
-
 end
 
 # TokenList ####################################################################################################
@@ -255,6 +271,7 @@ class TokenList
 	def to_s
 		output = ""
 		@tokens.each do |t|
+			break if t.eql? "DIEDIEDIE"
 			output << t != "%" ? "#{t}" : "%% "
 			output << " "
 		end
@@ -262,10 +279,14 @@ class TokenList
 		output
 	end
 	
-	def get(index)
-		@tokens[index]
+	def getFrom(index)
+		@tokens[index..-1]
 	end
-
+	
+	def getSize()
+		@tokens.size
+	end
+	
 end
 
 # CharDetails ####################################################################################################
