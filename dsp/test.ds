@@ -1,4 +1,19 @@
+func phooey()
+	use foo
+end
+
+DIEDIEDIE
+
 use sampleLib
+
+func empty()
+end
+
+
+func empty()
+	use foo
+end
+
 
 func print(whatever)
 	// TODO: Libraries

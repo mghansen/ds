@@ -27,6 +27,9 @@ dspMain
 
 =begin
 TODO:
+	Unary operators ++ --
+	Assignment operators += -= etc.
 	Arrays and other containers
 	break/continue
+	constructor params
 =end

@@ -34,22 +34,22 @@ class Parser
 		i = 0
 		while i < tokenList.getSize - 1 do
 
-			puts i
+			# puts i
 		
 			tokens = tokenList.getFrom(i)
-			element = Statement.parse tokens # TODO: More than one document
+			element = Statement.parse tokens # Support this in more than one document
 			if element == nil
-				dbgParser "missing element, stopping... (#{tokens[0]} #{tokens[1]} #{tokens[2]} #{tokens[3]} #{tokens[4]})"
+				dbgParser "stopping on missing element: #{tokens[0]} #{tokens[1]} #{tokens[2]} #{tokens[3]} #{tokens[4]} ..."
 				return
 			elsif !element.isValid
-				dbgParser "invalid element, stopping... (#{tokens[0]} #{tokens[1]} #{tokens[2]} #{tokens[3]} #{tokens[4]})"
+				dbgParser "stopping on invalid element: #{tokens[0]} #{tokens[1]} #{tokens[2]} #{tokens[3]} #{tokens[4]} ..."
 				return
 			else
-				dbgParser "> \"#{tokens[0]}...\" consumed #{element.consumed()}"
+				dbgParser "> (#{element.getConsumed()}) #{element.to_s}"
 				@elements.push(element)
-				inc = element.consumed().to_i
-				puts inc
-				i += (inc == 0) ? 1 : inc
+				consumed = element.getConsumed().to_i
+				#puts inc
+				i += (consumed == 0) ? 1 : consumed
 			end
 		end
 		

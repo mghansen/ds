@@ -1,9 +1,9 @@
 require 'forwardable'
 
-$verbose = false
+$verboseTokenizer = false
 
 def dbg text
-	puts text if $verbose
+	puts text if $verboseTokenizer
 end
 
 # Tokenizer ####################################################################################################
@@ -66,7 +66,7 @@ class Tokenizer
 		nextState = @@stateNone
 
 		chars.each_with_index do |item, index|
-			printf "#{'%03d' % index}:#{item.to_s}:" if $verbose
+			printf "#{'%03d' % index}:#{item.to_s}:" if $verboseTokenizer
 			
 			if numCharsToSkip > 0
 				numCharsToSkip -= 1
@@ -215,7 +215,7 @@ class Tokenizer
 						state = @@stateInComment
 						numCharsToSkip = 1
 					else
-						puts "     >" + s if $verbose
+						puts "     >" + s if $verboseTokenizer
 						if s.eql? "DIEDIEDIE"
 							@ignoreAll = true
 							return
@@ -299,10 +299,11 @@ class CharDetails
 	@@digit = "0123456789"
 	@@whitespace = " \t\r\n"
 	@@punctuation = "()!<=>+-*/.,"
-	@@doubles = [ "<<", "<=", "==", ">=", ">>", "&&", "||", 
-					"++", "--", "+=", "-=", "*=", "/=", 
-					"\\\\", "\\r", "\\n",
-					"//", "/*", "*/" ]
+	@@doubles = [
+		"<<", "<=", "==", ">=", ">>", "&&", "||", 
+		"+=", "-=", "*=", "/=", 
+		"\\\\", "\\r", "\\n", "//", "/*", "*/" ]
+		
 	# Currently, all comment indicators must have length 2
 	@@singleLineCommentStart = [ "//" ]
 	@@multiLineCommentStart = [ "/*" ]
