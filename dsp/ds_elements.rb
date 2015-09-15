@@ -69,6 +69,15 @@ class DSObject
 	def to_s
 		"X"
 	end
+	
+	def self.isName(name)
+		/([\w&&\D])\w*/ =~ name
+		#puts "\"#{name}\" IS NAME? #{ret ? "TRUE" : "FALSE"}"
+	end
+	
+	def self.isNumber(number)
+		/^\-?\d+(\.\d+)?$/ =~ number
+	end
 		
 end
 
@@ -140,35 +149,41 @@ end
 
 class Document < DSObject
 	def initialize
-		@Use = Array.new
-		@Statement = Array.new
+		@DSUse = Array.new
+		@DSStatement = Array.new
 	end
 	def self.parse tokens
 		super
 	end
 end
 
-# Statement ####################################################################################################
+# DSStatement ####################################################################################################
 
-class Statement < DSObject
+class DSStatement < DSObject
 	def initialize
 		super
 	end
 	def self.parse tokens	
-		dbgElementsTokens "Statement.parse", tokens
+		dbgElementsTokens "DSStatement.parse", tokens
+		
+		#DSObject.isName(tokens[0])
+		#puts "ASSIGN OPERATOR" if [ "=", "+=", "-=", "*=", "/=" ].include?(tokens[1])
+		#puts "YEAH, IT'S A NAME" if DSObject.isName(tokens[0])
+		
 		if tokens[0].eql?("use")
 			dbgElements "USE"
-			element = Use.parse(tokens)
+			element = DSUse.parse(tokens)
 		elsif ["enum", "class", "func" ].include?(tokens[0])
-			element = Declaration.parse(tokens)
+			element = DSDeclaration.parse(tokens)
 		elsif ["if", "for", "while", "do", "switch" ].include?(tokens[0])
-			element = Control.parse tokens
-		elsif tokens[1] == '='
-			element = Assignment.parse(tokens)
+			element = DSControl.parse tokens
+		elsif [ "=", "+=", "-=", "*=", "/=" ].include?(tokens[1]) and DSObject.isName(tokens[0])
+			element = DSAssignment.parse(tokens)
 		else
-			element = Expression.parse(tokens)
+			dbgElements "EXPRESSION"
+			element = DSExpression.parse(tokens)
 		end
-		dbgElements "STATEMENT END"
+		#dbgElements "STATEMENT END"
 		element
 	end
 	def to_s
@@ -176,20 +191,20 @@ class Statement < DSObject
 	end
 end
 
-# Block ####################################################################################################
+# DSBlock ####################################################################################################
 
-class Block < DSObject
+class DSBlock < DSObject
 	def initialize statements
 		super()
 		@statements = statements
 		consumed = 0
 		statements.each { |s| consumed += s.getConsumed() }
-		consume consumed
+		consume consumed + 1 # + 1 is for "end"
 	end
 	
 	def self.parse(tokens, finalizingTokens)
-		puts "Block #{tokens.size} tokens"
-		dbgElementsTokens "Block.parse", tokens
+		#puts "DSBlock #{tokens.size} tokens"
+		dbgElementsTokens "DSBlock.parse", tokens
 		statements = Array.new
 		i = 0
 		if tokens != nil and tokens.size > 0
@@ -198,72 +213,79 @@ class Block < DSObject
 				if(finalizingTokens.include?(tokens[i]))
 					break
 				else
-					statement = Statement.parse(tokens[i..-1])
+					statement = DSStatement.parse(tokens[i..-1])
 					statements.push(statement)
 					i += statement.getConsumed()
 				end
 			end
-			element = Block.new(statements)
+			element = DSBlock.new(statements)
 		else
 			element = invalid()
 		end
 		element
 	end
 	def to_s
-		@statements.each { |statemenet| s << statemenet.to_s << "\n" }
-		s
+		blockText = ""
+		@statements.each { |statement| blockText << statement.to_s << "\n" }
+		blockText
 	end
 end
 
-# Use ####################################################################################################
+# DSUse ####################################################################################################
 
-class Use < Statement
+class DSUse < DSStatement
 	def initialize (filename)
 		super()
 		@filename = filename
 		consume 2
 	end
 	def self.parse tokens
-		dbgElementsTokens "Use.parse", tokens
+		dbgElementsTokens "DSUse.parse", tokens
 		if tokens[0].eql? "use" and tokens.size > 1
-			element = Use.new(tokens[1])
+			element = DSUse.new(tokens[1])
 		end
 		element
 	end
 	def to_s
-		"use " + @filename
+		"use #{@filename}"
 	end
 end
 
-# Assignment ####################################################################################################
+# DSAssignment ####################################################################################################
 
-class Assignment < Statement
-	def initialize
-		super
-		@lValue = ""
-		@rValue = nil
+class DSAssignment < DSStatement
+	def initialize(lValue, operation, tokens)
+		super()
+		@lValue = lValue
+		@operation = operation
+		@rValue = DSExpression.parse(tokens)
+		consume 2 + @rValue.getConsumed()
 	end
 	def self.parse tokens
-		dbgElementsTokens "Assignment.parse", tokens
-		super
+		dbgElementsTokens "DSAssignment.parse", tokens
+		element = DSAssignment.new(tokens[0], tokens[1], tokens[2..-1])
+		element
+	end
+	def to_s
+		"#{@lValue} #{@operation} #{@rValue}"
 	end
 end
 
-# Declaration ####################################################################################################
+# DSDeclaration ####################################################################################################
 
-class Declaration < Statement
+class DSDeclaration < DSStatement
 	def initialize
 		super
 	end
 	def self.parse tokens
-		dbgElementsTokens "Declaration.parse", tokens
+		dbgElementsTokens "DSDeclaration.parse", tokens
 		element = invalid()
-		if tokens[0].eql?("enum")
-			#element = EnumDeclaration.parse(tokens)
-		elsif tokens[0].eql?("class")
-			#element = ClassDeclaration.parse(tokens)
-		elsif tokens[0].eql?("func")
-			element = FunctionDeclaration.parse(tokens)
+		if tokens[0].eql?("enum") and DSObject.isName(tokens[1]) and DSObject.isName(tokens[2])
+			#element = DSEnumDeclaration.parse(tokens)
+		elsif tokens[0].eql?("class") and DSObject.isName(tokens[1]) and DSObject.isName(tokens[2]) # tokens[2] might be "from"
+			#element = DSClassDeclaration.parse(tokens)
+		elsif tokens[0].eql?("func") and DSObject.isName(tokens[1]) and tokens[2].eql?("(")
+			element = DSFunctionDeclaration.parse(tokens)
 		else
 			element = invalid()
 		end
@@ -271,20 +293,20 @@ class Declaration < Statement
 	end
 end
 
-class EnumDeclaration < Declaration
+class DSEnumDeclaration < DSDeclaration
 	def initialize
 		super
 		@enumValue = Array.new
 		# numeric value?
 	end
 	def self.parse tokens
-		dbgElementsTokens "EnumDeclaration.parse", tokens
-		dbgElements "EnumDeclaration.parse"
+		dbgElementsTokens "DSEnumDeclaration.parse", tokens
+		dbgElements "DSEnumDeclaration.parse"
 		super
 	end
 end
 
-class EnumValue < DSName
+class DSEnumValue < DSName
 	def initialize
 		super
 	end
@@ -293,7 +315,7 @@ class EnumValue < DSName
 	end
 end
 
-class ClassDeclaration < Declaration
+class DSClassDeclaration < DSDeclaration
 	def initialize
 		super
 		@baseClass = ""
@@ -301,17 +323,17 @@ class ClassDeclaration < Declaration
 		@members = Array.new
 	end
 	def self.parse tokens
-		dbgElements "ClassDeclaration.parse"
+		dbgElements "DSClassDeclaration.parse"
 		super
 	end
 end
 
-# FunctionDeclaration ####################################################################################################
+# DSFunctionDeclaration ####################################################################################################
 
-class FunctionDeclaration < Declaration
+class DSFunctionDeclaration < DSDeclaration
 	def initialize(name, tokens)
-		dbgElements "FunctionDeclaration.initialize"
-		dbgElementsTokens "FunctionDeclaration.initialize tokens:", tokens
+		#dbgElements "DSFunctionDeclaration.initialize"
+		dbgElementsTokens "DSFunctionDeclaration.initialize tokens:", tokens
 		
 		super()
 		@name = name
@@ -319,40 +341,40 @@ class FunctionDeclaration < Declaration
 		consumed = 3
 		
 		@params = Array.new
-		dbgElements "FunctionDeclaration.initialize tokens.each"
-		tokens.each do |t| 
+		#dbgElements "DSFunctionDeclaration.initialize tokens.each"
+		tokens[consumed..-1].each do |t| 
 			consumed += 1
 			if t.eql?(")")
-				puts "PARAM END"
+				#puts "PARAM END"
 				break
 			elsif t != ","
-				puts "PARAM NORMAL"
+				#puts "PARAM NORMAL"
 				@params.push(t)
-				puts ">>> #{t}"
+				dbgElements ">>> #{t}"
 			else
-				puts "PARAM COMMA"
-				#dbgElements "FunctionDeclaration.initialize Consuming comma"				
+				# comma
 			end
 		end
-		#dbgElements "FunctionDeclaration.initialize calling block has #{@params.size} parameters."
+		#dbgElements "DSFunctionDeclaration.initialize calling block has #{@params.size} parameters."
 		
-		dbgElements "FunctionDeclaration.initialize calling block"
+		dbgElements "DSFunctionDeclaration.initialize calling block, #{consumed} consumed"
+		#dbgElementsTokens("DSFunctionDeclaration Tokens", tokens)
 		blockTokens = tokens[consumed..-1]
-		puts "FunctionDeclaration #{blockTokens.size} tokens"
+		dbgElementsTokens("DSFunctionDeclaration BlockTokens", blockTokens)
+		dbgElements "DSFunctionDeclaration #{blockTokens.size} tokens"
 
-		@block = Block.parse(blockTokens, [ "end" ])
+		@block = DSBlock.parse(blockTokens, [ "end" ])
 		consumed += @block.getConsumed()
 		consume consumed
 	end
 	
 	def self.parse tokens
-		puts "FunctionDeclaration #{tokens.size} tokens"
-		dbgElementsTokens "FunctionDeclaration.parse", tokens
-		puts "#{tokens.size} tokens"
-		if(tokens[0].eql?("func") && tokens[2].eql?("("))
-			dbgElements "FunctionDeclaration.parse before FunctionDeclaration.new"
-			element = FunctionDeclaration.new(tokens[1], tokens[3..-1])
-			dbgElements "FunctionDeclaration.parse after FunctionDeclaration.new"
+		puts "DSFunctionDeclaration #{tokens.size} tokens"
+		dbgElementsTokens "DSFunctionDeclaration.parse", tokens
+		if(tokens[0].eql?("func") and DSObject.isName(tokens[1]) and tokens[2].eql?("("))
+			dbgElements "DSFunctionDeclaration.parse before DSFunctionDeclaration.new"
+			element = DSFunctionDeclaration.new(tokens[1], tokens)#[3..-1])
+			dbgElements "DSFunctionDeclaration.parse after DSFunctionDeclaration.new"
 		else
 			element = invalid()
 		end
@@ -377,21 +399,30 @@ class FunctionDeclaration < Declaration
 	end
 end
 
-# Expression ####################################################################################################
+# DSExpression ####################################################################################################
 
-class Expression < Statement
+class DSExpression < DSStatement
 	def initialize
-		dbgElements "Expression.initialize"
 		super
 	end
 	def self.parse tokens
-		dbgElementsTokens "Expression.parse", tokens
-		element = Expression.new
+		dbgElementsTokens "DSExpression.parse", tokens
+		
+		if DSObject.isNumber(tokens[0])
+			element = DSNumber.parse(tokens)
+		elsif /^\"/ =~ tokens[0]
+			element = DSString.parse(tokens)	
+		elsif /^true|false$/ =~ tokens[0]
+			element = DSBool.parse(tokens)
+		else
+			# TODO: More cases for operations, comparisons, etc.
+			element = invalid()
+		end
 		element
 	end
 end
 
-class Constant < Expression
+class DSConstant < DSExpression
 	def initialize
 		super
 	end
@@ -400,37 +431,55 @@ class Constant < Expression
 	end
 end
 
-class DSNumber < Constant
-	def initialize
-		super
-		@value = 0
+class DSNumber < DSConstant
+	def initialize(value)
+		super()
+		if value.include? '.'
+			@value = value.to_f
+		else
+			@value = value.to_i
+		end
+		consume 1
 	end
 	def self.parse tokens
-		super
+		element = DSNumber.new(tokens[0])
+		element
+	end
+	def to_s
+		@value.to_s
 	end
 end
 
-class DSString < Constant
-	def initialize
-		super
-		@value = ""
+class DSString < DSConstant
+	def initialize(value)
+		super()
+		@value = value
+		consume 1
 	end
 	def self.parse tokens
-		super
+		element = DSString.new(tokens[0])
+		element
+	end
+	def to_s
+		@value
 	end
 end
 
-class DSBool < Constant
-	def initialize
-		super
-		@value = false
+class DSBool < DSConstant
+	def initialize(value)
+		super()
+		@value = value
+		consume 1
 	end
 	def self.parse tokens
-		super
+		element = DSBool.new(tokens[0].eql?("true"))
+	end
+	def to_s
+		@value ? "true" : "false"
 	end
 end
 
-class Variable < Expression
+class DSVariable < DSExpression
 	def initialize
 		@constant = nil
 		super
@@ -440,7 +489,7 @@ class Variable < Expression
 	end
 end
 
-class Operation < Expression
+class DSOperation < DSExpression
 	@logicalOperators = [ "+", "-", "*", "/", "." ]
 	@arithmeticOperators = [ "!", "<", "<=", "==", ">", ">=", "&&", "||", "^" ]
 	def initialize
@@ -450,124 +499,124 @@ class Operation < Expression
 		super
 	end
 	def self.parse tokens
-		dbgElementsTokens "Operation.parse", tokens
+		dbgElementsTokens "DSOperation.parse", tokens
 		super
 	end
 end 
 
-class Control < Statement
+class DSControl < DSStatement
 	def initialize
 		super
 	end
 	def self.parse tokens
-		dbgElementsTokens "Control.parse", tokens
+		dbgElementsTokens "DSControl.parse", tokens
 		super
 	end
 end
 
-class If < Control
+class DSIf < DSControl
 	def initialize
 		super
 		@conditionIf = Nil
 		@conditionElse = Array.new
 	end
 	def self.parse tokens
-		dbgElementsTokens "If.parse", tokens
+		dbgElementsTokens "DSIf.parse", tokens
 		super
 	end
 end
 
-class Condition
+class DSCondition
 	def initialize
 		super
 		@expression = nil
 		@block = nil
 	end
 	def self.parse tokens
-		dbgElementsTokens "Condition.parse", tokens
+		dbgElementsTokens "DSCondition.parse", tokens
 		super
 	end
 end
 
-class For < Control
+class DSFor < DSControl
 	def initialize
 		super
 		@variant = nil
 		@block = nil
 	end
 	def self.parse tokens
-		dbgElementsTokens "For.parse", tokens
+		dbgElementsTokens "DSFor.parse", tokens
 		super
 	end
 end
 
-class ForIn < For
+class DSForIn < DSFor
 	def initialize
 		super
 		@target = nil
 	end
 	def self.parse tokens
-		dbgElementsTokens "ForIn.parse", tokens
+		dbgElementsTokens "DSForIn.parse", tokens
 		super
 	end
 end
 
-class ForFrom < For
+class DSForFrom < DSFor
 	def initialize
 		super
 		@first = nil
 		@last = nil
 	end
 	def self.parse tokens
-		dbgElementsTokens "ForFrom.parse", tokens
+		dbgElementsTokens "DSForFrom.parse", tokens
 		super
 	end
 end
 
-class While < Control
+class DSWhile < DSControl
 	def initialize
 		super
 		@expression = nil
 		@block = nil
 	end
 	def self.parse tokens
-		dbgElementsTokens "While.parse", tokens
+		dbgElementsTokens "DSWhile.parse", tokens
 		super
 	end
 end
 
-class Do < Control
+class DSDo < DSControl
 	def initialize
 		super
 		@block = nil
 		@expression = nil
 	end
 	def self.parse tokens
-		dbgElementsTokens "Do.parse", tokens
+		dbgElementsTokens "DSDo.parse", tokens
 		super
 	end
 end
 
-class Switch < Control
+class DSSwitch < DSControl
 	def initialize
 		super
 		@expression = nil
 		@cases = nil
 	end
 	def self.parse tokens
-		dbgElementsTokens "Switch.parse", tokens
+		dbgElementsTokens "DSSwitch.parse", tokens
 		super
 	end
 end
 
-class Case < DSObject
+class DSCase < DSObject
 	def initialize
 		super
 		@expression
 		@block
 	end
 	def self.parse tokens
-		dbgElementsTokens "Case.parse", tokens
+		dbgElementsTokens "DSCase.parse", tokens
 		super
 	end
 end

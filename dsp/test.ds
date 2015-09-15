@@ -1,8 +1,22 @@
-func phooey()
+a = -5
+a = -5.0
+a = false
+a = true
+a = foo
+a = 123456.213456
+a = 123456.
+a = -5.55555
+a = 5
+b = "I'm a string"
+DIEDIEDIE
+
+Breakfast = 2
+_12435 = Bubbles
+
+
+func phooey(param1, param2)
 	use foo
 end
-
-DIEDIEDIE
 
 use sampleLib
 
@@ -23,6 +37,7 @@ func seven()
 	return 7
 end
 
+DIEDIEDIE
 
 DIEDIEDIE
 //----------------------------------------------------------------------------------------------------

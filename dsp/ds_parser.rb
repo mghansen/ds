@@ -29,7 +29,6 @@ class Parser
 	end
 	
 	def parseAll
-		dbgParser "PARSEALL START"
 		tokenList = @tokenizer.getTokenList()
 		i = 0
 		while i < tokenList.getSize - 1 do
@@ -37,7 +36,7 @@ class Parser
 			# puts i
 		
 			tokens = tokenList.getFrom(i)
-			element = Statement.parse tokens # Support this in more than one document
+			element = DSStatement.parse tokens # Support this in more than one document
 			if element == nil
 				dbgParser "stopping on missing element: #{tokens[0]} #{tokens[1]} #{tokens[2]} #{tokens[3]} #{tokens[4]} ..."
 				return
