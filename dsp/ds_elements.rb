@@ -30,7 +30,7 @@ class DSObject
 		@consumed = 1
 		@valid = true
 		@error = @@errorSuccess
-		consume 1 # yes, redundant
+		consume 1 # Advance 1 character by default
 	end
 	
 	def err
@@ -84,6 +84,19 @@ class DSObject
 		/^\-?\d+(\.\d+)?$/ =~ number
 	end
 		
+end
+
+# DSDocument ####################################################################################################
+
+class DSDocument < DSObject
+	def initialize(name, statements)
+		super()
+		@name = name
+		@statements = statements
+	end
+	def self.parse tokens
+		super
+	end
 end
 
 # Names ####################################################################################################
@@ -162,18 +175,6 @@ class DSFileName < DSName
 		dbgElementsTokens "DSFileName.parse", tokens
 		element = new DSFileName(tokens[0])
 		element
-	end
-end
-
-# DSDocument ####################################################################################################
-
-class DSDocument < DSObject
-	def initialize
-		super
-		@DSStatement = Array.new
-	end
-	def self.parse tokens
-		super
 	end
 end
 
@@ -646,7 +647,7 @@ class DSControl < DSStatement
 			element = DSIf.parse(tokens)
 		elsif tokens[0].eql?("for") and DSObject.isName(tokens[1])
 			element = DSFor.parse(tokens)
-		elsif tokens[0].eql?("while")
+		elsif tokens[0].eql?("while") and tokens[1].eql?("(")
 			element = DSWhile.parse(tokens)
 		elsif tokens[0].eql?("do")
 			element = DSDo.parse(tokens)
@@ -860,57 +861,171 @@ class DSForFrom < DSFor
 end
 
 # DSWhile ####################################################################################################
-
 class DSWhile < DSControl
-	def initialize
-		super
-		@expression = nil
-		@block = nil
+	def initialize(expression, block)
+		super()
+		@expression = expression
+		@block = block
+		consume 2 + expression.getConsumed + 1 + block.getConsumed
 	end
 	def self.parse tokens
 		dbgElementsTokens "DSWhile.parse", tokens
-		super
+		if tokens[0].eql?("while") and tokens[1].eql?("(")
+			consumed = 2
+			expression = DSExpression.parse(tokens[2..-1])
+			if expression.isValid and tokens[2 + expression.getConsumed()].eql?(")")
+				consumed += expression.getConsumed + 1
+				block = DSBlock.parse(tokens[consumed..-1], [ "end" ])
+				if block.isValid()
+					element = DSWhile.new(expression, block)				
+				else
+					element = invalid()
+				end
+			else
+				element = invalid()
+			end
+		else
+			element = invalid()
+		end
+		element
+	end
+	def to_s
+		"while(#{expression.to_s})\n#{block.to_s}\nend"
 	end
 end
 
 # DSDo ####################################################################################################
 
 class DSDo < DSControl
-	def initialize
-		super
-		@block = nil
-		@expression = nil
+	def initialize(block, expression)
+		super()
+		@block = block
+		@expression = expression
+		consume 1 + block.getConsumed + 1 + expression.getConsumed + 1
 	end
 	def self.parse tokens
 		dbgElementsTokens "DSDo.parse", tokens
-		super
+		if tokens[0].eql?("do")
+			consumed = 1
+			block = DSBlock.new(tokens[consumed..-1], [ "while" ])
+			if block.isValid and tokens[consumed + block.getConsumed].eql?("(")
+				consumed += block.getConsumed + 1
+				expression = DSExpression.parse(tokens[consumed..-1])
+				if expression.isValid
+					element = new DSDo(block, expression)
+				else
+					element = invalid()
+				end
+			else
+				element = invalid()
+			end
+		else
+			element = invalid()
+		end
+		element
+	end
+	def to_s
+		"do\n#{block.to_s}\nwhile(#{expression.to_s})"
 	end
 end
 
 # DSSwitch ####################################################################################################
 
+
 class DSSwitch < DSControl
-	def initialize
-		super
-		@expression = nil
-		@cases = nil
+	def initialize(expression, cases)
+		super()
+		@expression = expression
+		@cases = cases
+		consumed = 2 + expression.getConsumed + 1
+		dscase.each { |c| consumed += c.getConsumed }
+		consumed += 1
 	end
 	def self.parse tokens
 		dbgElementsTokens "DSSwitch.parse", tokens
-		super
+		if tokens[0].eql?("switch") and tokens[1].eql?("(")
+			consumed = 2
+			expression = DSExpression.parse(tokens[consumed..-1])
+			if expression.isValid and tokens[consumed + expression.getConsumed].eql?(")")
+				consumed += expression.getConsumed + 1
+				cases = Array.new
+				begin
+					dscase = DSCase.parse(tokens[consumed..-1])
+					if dscase.isValid
+						cases.push(dscase)
+						consumed += dscase.getConsumed
+					else
+						break
+					end
+				end while dscase.isValid
+				if cases.size > 0 and tokens[consumed].eql?("end")
+					element = DSSwitch.new(expression, cases)
+				else
+					element = invalid()
+				end
+			else
+				element = invalid
+			end
+		else
+			element = invalid()
+		end
+		element
+	end
+	def to_s
+		s = "switch(#{expression.to_s})\n"
+		cases.each { |c| s << c.to_s << "\n" }
+		s << "end"
+		s
 	end
 end
 
 # DSCase ####################################################################################################
+#			<switch> ::= switch <nested_expression> { <case> } end
+#				<case> ::= case <case_expression> <block> end
+#					<case_expression> ::= default | <nested_expression>
 
 class DSCase < DSObject
-	def initialize
-		super
-		@expression
-		@block
+	def initialize(expression, block, isDefault)
+		super()
+		@expression = expression
+		@block = block
+		consume 1 + (isDefault ? 1 : 2 + expression.getConsumed) + block.getConsumed
 	end
 	def self.parse tokens
 		dbgElementsTokens "DSCase.parse", tokens
-		super
+		if tokens[0].eql?("case")
+			isDefault = false
+			element = nil
+			consumed = 1
+			if tokens[1].eql?("default")
+				isDefault = true
+				consumed += 1
+				expression = DSExpression.parse( [ "true" ] )
+			elsif tokens[1].eql?("(")
+				consumed += 1
+				expression = DSExpression.parse(tokens[consumed..-1])
+				if expression.isValid and tokens[consumed + expression.getConsumed].eql?(")")
+					consumed += expression.getConsumed + 1
+				else
+					expression = nil
+				end
+			end
+			if expression != nil
+				block = DSBlock.parse(tokens[consumed..-1])
+				if block.isValid
+					element = DSCase.new(expression, block, isDefault)
+				else
+					element = invalid()
+				end
+			else
+				element = invalid()
+			end
+		else
+			element = invalid()
+		end
+		element
+	end
+	def to_s
+		"case#{isDefault ? " default" : "(#{expression.to_s})"}\n#{block.to_s}\nend"
 	end
 end
