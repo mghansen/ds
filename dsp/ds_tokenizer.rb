@@ -168,6 +168,7 @@ class Tokenizer
 							dbg "case digit breaking token after other"
 							submissions.push token
 							token = item.char
+							nextState = @@stateInToken
 						end
 					else
 						dbg "case digit continuing a number"
@@ -243,11 +244,10 @@ class Tokenizer
 	end
 	
 	def showTokens()
-		puts (@tokenList)
-		#.each do |t|
-		#	printf t != "%" ? "#{t} " : "%% "
+		#if $verboseTokenizer
+			puts (@tokenList)
+			printf "--------------------------------------------------------------------------------\n"
 		#end
-		printf "\n"
 	end
 	
 end

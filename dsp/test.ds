@@ -1,3 +1,66 @@
+if(alpha)
+	f(6)
+	call(beta)
+else
+	call(gamma)
+	a = foo()
+end
+
+if(false)
+	Maybe
+end
+
+DIEDIEDIE
+
+if(1)
+	if(2)
+		if(3)
+			123
+		else
+			call(12)
+		end
+	elsif(4)
+		124
+	elsif(5)
+		call(125)
+	end
+else
+	call("param")
+end
+asdf = 2
+
+if(false)
+	Maybe
+end
+
+if(true)
+	Apple
+	Baby
+	Cauldron
+	Dippindots
+elsif(true)
+	Enough
+	French
+	Gravy
+else(10 < 6)
+	Having
+	Ice
+	Just
+	Kills
+	Lice
+end
+
+DIEDIEDIE
+b = 1 + 2
+b = call("t-rex", 5) - 6 * (Bubbles && false)
+DIEDIEDIE
+b = (call((1), "two", (three((4), 2, (123)))))
+b
+a = call(1, "Two", three(3))
+a = (("hello"))
+a = (((1)))
+
+
 a = -5
 a = -5.0
 a = false

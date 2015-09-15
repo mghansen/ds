@@ -25,16 +25,13 @@ class Parser
 	
 	def tokenize
 		@tokenizer.tokenizeLines @lineList
-		@tokenizer.showTokens
+		@tokenizer.showTokens #if $verboseParser
 	end
 	
 	def parseAll
 		tokenList = @tokenizer.getTokenList()
 		i = 0
 		while i < tokenList.getSize - 1 do
-
-			# puts i
-		
 			tokens = tokenList.getFrom(i)
 			element = DSStatement.parse tokens # Support this in more than one document
 			if element == nil
@@ -47,7 +44,6 @@ class Parser
 				dbgParser "> (#{element.getConsumed()}) #{element.to_s}"
 				@elements.push(element)
 				consumed = element.getConsumed().to_i
-				#puts inc
 				i += (consumed == 0) ? 1 : consumed
 			end
 		end

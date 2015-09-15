@@ -62,8 +62,9 @@
 				<condition_else> ::= elsif <condition>
 				<condition> ::= <nested_expression> <block>
 				
-			<for_in> ::= for <for_variant> in <var_name> do <block> end
-			<for_from> | ::= for <for_variant> from <expression> to <expression> do <block> end
+			<for_in> ::= for <for_variant> in <set> do <block> end
+				<set> ::= <var_name>
+			<for_from> | ::= for <for_variant> from <expression> to <expression> <block> end
 				<for_variant> :== <var_name>
 				
 			<while> ::= while <nested_expression> do <block> end
