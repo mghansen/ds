@@ -34,7 +34,7 @@
 				<block> ::= { <statement> }
 
 		// rvalue
-		<expression> ::= <nested_expression> | <constant_value> | <var_name> | <operation> | <function_call>
+		<expression> ::= <nested_expression> | <constant_value> | <var_name> | <operation> | <function_call> | nil
 		
 			<nested_expression> :: = '(' <expression> ')'
 		

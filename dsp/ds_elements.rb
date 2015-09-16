@@ -1,6 +1,7 @@
 # def consume(n) consumed += n
 
 $verboseElements = false
+$indentationLevel = 4
 
 def dbgElements text
 	puts text if $verboseElements
@@ -13,6 +14,15 @@ def dbgElementsTokens(text, tokens)
 			puts "#{text} [ #{tokens[0]} #{tokens[1]} #{tokens[2]} #{tokens[3]} #{tokens[4]} ]"
 		end
 	end
+end
+def spaces(indent)
+	s = ""#"<#{indent}>"
+	i = indent * $indentationLevel
+	while i > 0
+		s << " "
+		i = i - 1
+	end
+	s
 end
 
 # DSObject ####################################################################################################
@@ -75,6 +85,10 @@ class DSObject
 		"X"
 	end
 	
+	def format(indent)
+		to_s
+	end
+	
 	def self.isName(name)
 		/([\w&&\D])\w*/ =~ name
 		#puts "\"#{name}\" IS NAME? #{ret ? "TRUE" : "FALSE"}"
@@ -119,6 +133,10 @@ class DSName < DSObject
 	def to_s
 		@name
 	end
+	def format(indent)
+		@name
+	end
+		
 	
 end
 
@@ -126,22 +144,36 @@ class DSVarName < DSName
 	def initialize (name)
 		dbgElements "DSVarName.initialize " + name
 		super
+		@name = name
 	end
 	def self.parse tokens
 		dbgElementsTokens "DSVarName.parse", tokens
 		element = DSObject.isName(tokens[0]) ? DSVarName.new(tokens[0]) : invalid()
 		element
 	end
+	def to_s
+		@name
+	end
+	def format(indent)
+		@name
+	end
 end
 
 class DSFunctionName < DSName
 	def initialize (name)
-		super
+		super()
+		@name = name
 	end
 	def self.parse tokens
 		dbgElementsTokens "DSFunctionName.parse", tokens
 		element = DSObject.isName(tokens[0]) ? DSFunctionName.new(tokens[0]) : invalid()
 		element
+	end
+	def to_s
+		@name
+	end
+	def format(indent)
+		@name
 	end
 end
 
@@ -207,6 +239,9 @@ class DSStatement < DSObject
 	def to_s
 		"X"
 	end
+	def self.prefix(indent)
+		 "> #{spaces(indent)}"
+	end
 end
 
 # DSBlock ####################################################################################################
@@ -251,6 +286,12 @@ class DSBlock < DSObject
 		@statements.each { |statement| blockText << statement.to_s << "\n" }
 		blockText
 	end
+	def format(indent)
+		blockText = ""
+		@statements.each { |statement| blockText << "#{DSStatement.prefix(indent)}#{statement.format(indent + 1)}\n"}
+		blockText << "#{DSStatement.prefix(indent - 1)}#{@finalizingToken}"
+		blockText
+	end
 end
 
 # DSUse ####################################################################################################
@@ -270,6 +311,9 @@ class DSUse < DSStatement
 	end
 	def to_s
 		"use #{@filename}"
+	end
+	def format(indent)
+		"#{spaces(indent)}#{to_s}"
 	end
 end
 
@@ -295,6 +339,9 @@ class DSAssignment < DSStatement
 	end
 	def to_s
 		"#{@lValue} #{@operation} #{@rValue}"
+	end
+	def format(indent)
+		"#{to_s}"
 	end
 end
 
@@ -423,6 +470,20 @@ class DSFunctionDeclaration < DSDeclaration
 		s << "end"
 		s
 	end
+	def format(indent)
+		s = "func #{@name} ("
+		first = true
+		@params.each do |p| 
+			if first
+				s << "#{p}"
+				first = false
+			else
+				s << ", #{p}"
+			end
+		end
+		s << ")\n#{@block.format(indent)}end"
+		s
+	end
 end
 
 # DSExpression ####################################################################################################
@@ -451,6 +512,8 @@ class DSExpression < DSStatement
 		elsif /^true|false$/ =~ tokens[0]
 			# dbgElements "EXPRESSION BOOL"
 			element = DSBool.parse(tokens)
+		elsif tokens[0].eql?("nil")
+			dbgElements "NIL"
 		elsif DSObject.isName(tokens[0]) and not @@keywords.include?(tokens[0])
 			if tokens[1].eql?("(")
 				# dbgElements "EXPRESSION FUNCTION CALL"
@@ -468,7 +531,6 @@ class DSExpression < DSStatement
 			# dbgElements "EXPRESSION OPERATION"
 			element = DSOperation.parse(tokens, element)
 		end
-		
 		element
 	end
 end
@@ -502,6 +564,9 @@ class DSNumber < DSConstant
 	def to_s
 		@value.to_s
 	end
+	def format(indent)
+		to_s
+	end
 end
 
 class DSString < DSConstant
@@ -517,6 +582,9 @@ class DSString < DSConstant
 	def to_s
 		@value
 	end
+	def format(indent)
+		to_s
+	end
 end
 
 class DSBool < DSConstant
@@ -530,6 +598,9 @@ class DSBool < DSConstant
 	end
 	def to_s
 		@value ? "[true]" : "[false]"
+	end
+	def format(indent)
+		to_s
 	end
 end
 
@@ -582,6 +653,9 @@ class DSOperation < DSExpression
 		s = "(#{@firstExpression.to_s} #{@operator} #{@secondExpression.to_s})"
 		s
 	end
+	def format(indent)
+		to_s.rjust
+	end
 	
 end 
 
@@ -633,6 +707,13 @@ class DSFunctionCall < DSExpression
 		s << ")"
 		s
 	end
+	def format(indent)
+		to_s
+	end
+	def format(indent)
+		to_s
+	end
+	
 end
 
 # DSControl ####################################################################################################
@@ -717,6 +798,14 @@ class DSIf < DSControl
 		s << "end"
 		s
 	end
+	def format(indent)
+		#a = 5 / 0
+		s = "if"
+		@conditions.each do |c| 
+			s << " #{c.format(indent + 1)}"
+		end
+		s
+	end
 end
 
 # DSCondition ####################################################################################################
@@ -735,12 +824,15 @@ class DSCondition < DSObject
 		end
 		# puts "CONDITION CONSUMED #{getConsumed()} >>> #{to_s}"
 	end
+	def getConditionType
+		@conditionType
+	end
 	def self.parse tokens
 		dbgElementsTokens "DSCondition.parse", tokens
 		isElse = tokens[0].eql?("else")
 		if (["if", "elsif"].include?(tokens[0]) and tokens[1].eql?("(")) or isElse
 			if isElse
-				expression = DSExpression.parse( ["true" ])
+				expression = DSExpression.parse( ["true" ] )
 				block = DSBlock.parse(tokens[1..-1], ["end"])
 				if block.isValid
 					element = DSCondition.new(tokens[0], expression, block)
@@ -769,6 +861,9 @@ class DSCondition < DSObject
 	end
 	def to_s
 		"#{@conditionType} (#{@expression.to_s})\n#{@block.to_s}"
+	end	
+	def format(indent)
+		"(#{@expression.to_s})\n#{@block.format(indent)}"
 	end	
 end
 
@@ -821,6 +916,9 @@ class DSForIn < DSFor
 	def to_s
 		s = "for |#{@variant}| in #{@set}\n#{@block}"
 	end
+	def format(indent)
+		"#{spaces(indent)}for |#{@variant}| in #{@set}\n#{@block.format(indent)}"
+	end
 end
 
 # DSForFrom ####################################################################################################
@@ -856,7 +954,10 @@ class DSForFrom < DSFor
 		end
 	end
 	def to_s
-		s = "for |#{@variant}| from #{@startExpression} to #{@endExpression}\n#{@block}"
+		"for |#{@variant}| from #{@startExpression} to #{@endExpression}\n#{@block}"
+	end
+	def format(indent)
+		"#{spaces(indent)}for |#{@variant}| from #{@startExpression} to #{@endExpression}\n#{@block.format(indent)}"
 	end
 end
 
@@ -892,6 +993,9 @@ class DSWhile < DSControl
 	def to_s
 		"while(#{expression.to_s})\n#{block.to_s}\nend"
 	end
+	def format(indent)
+		"while(#{expression.to_s.rjust(indent)})\n#{block.to_s.rjust(indent)}\nend\n"
+	end
 end
 
 # DSDo ####################################################################################################
@@ -926,6 +1030,9 @@ class DSDo < DSControl
 	end
 	def to_s
 		"do\n#{block.to_s}\nwhile(#{expression.to_s})"
+	end
+	def format(indent)
+		"#{spaces(indent)}do\n#{block.format(indent)}\n#{spaces(indent)}while(#{expression.to_s})\n"
 	end
 end
 
@@ -977,6 +1084,13 @@ class DSSwitch < DSControl
 		s << "end"
 		s
 	end
+	def format(indent)
+		s = "#{spaces(indent)}switch(#{expression})\n"
+		cases.each { |c| s << c.format(indent + 2) << "\n" }
+		s << "#{spaces(indent)}end\n"
+		s
+		
+	end
 end
 
 # DSCase ####################################################################################################
@@ -1026,6 +1140,9 @@ class DSCase < DSObject
 		element
 	end
 	def to_s
-		"case#{isDefault ? " default" : "(#{expression.to_s})"}\n#{block.to_s}\nend"
+		"case#{isDefault ? " default" : "(#{@expression.to_s})"}\n#{@block.to_s}\nend"
+	end
+	def format(indent)
+		"#{spaces(indent)}case #{ isDefault ? " default" : "(#{@expression.to_s})"}\n#{@block.format(indent)}\n#{spaces(indent)}\nend\n"
 	end
 end
