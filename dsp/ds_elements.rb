@@ -1,6 +1,13 @@
+# TODO: 
+#  Array
+#  new Class
+#  constructors and destructors?
+#  What is nil?
+#  Dot notation
+
 # def consume(n) consumed += n
 
-$verboseElements = false
+$verboseElements = true
 $indentationLevel = 4
 
 def dbgElements text
@@ -226,7 +233,7 @@ class DSStatement < DSObject
 		
 		if tokens[0].eql?("use")
 			element = DSUse.parse(tokens)
-		elsif ["enum", "class", "func" ].include?(tokens[0])
+		elsif ["enum", "class", "func", "var" ].include?(tokens[0])
 			element = DSDeclaration.parse(tokens)
 		elsif ["if", "for", "while", "do", "switch" ].include?(tokens[0])
 			element = DSControl.parse tokens
@@ -357,11 +364,13 @@ class DSDeclaration < DSStatement
 		dbgElementsTokens "DSDeclaration.parse", tokens
 		element = invalid()
 		if tokens[0].eql?("enum") and DSObject.isName(tokens[1]) and DSObject.isName(tokens[2])
-			#element = DSEnumDeclaration.parse(tokens)
+			element = DSEnumDeclaration.parse(tokens)
 		elsif tokens[0].eql?("class") and DSObject.isName(tokens[1]) and DSObject.isName(tokens[2]) # tokens[2] might be "from"
 			element = DSClassDeclaration.parse(tokens)
 		elsif tokens[0].eql?("func") and DSObject.isName(tokens[1]) and tokens[2].eql?("(")
 			element = DSFunctionDeclaration.parse(tokens)
+		elsif tokens[0].eql?("var") and DSObject.isName(tokens[1])
+			element = DSVariableDeclaration.parse(tokens)
 		else
 			element = invalid()
 		end
@@ -369,17 +378,85 @@ class DSDeclaration < DSStatement
 	end
 end
 
-# TODO >
-class DSEnumDeclaration < DSDeclaration
-	def initialize
-		super
-		@enumValue = Array.new
-		# numeric value?
+# DSVariableDeclaration ####################################################################################################
+
+class DSVariableDeclaration < DSDeclaration
+	def initialize(name)
+		@name = name
+		consume 2
 	end
 	def self.parse tokens
+		dbgElementsTokens "DSDeclaration.parse", tokens
+		if tokens[0].eql?("var") and DSObject.isName(tokens[1])
+			element = DSVariableDeclaration.new(tokens[1])
+		else
+			element = invalid()
+		end
+		element
+	end
+	def to_s
+		"var #{@name}"
+	end
+	def format(indent)
+		to_s
+	end
+end
+
+# DSEnumDeclaration ####################################################################################################
+
+# TODO >
+class DSEnumDeclaration < DSDeclaration
+	def initialize(name, values)
+		super()
+		@name = name
+		@values = values
+		consume (1 + (@values.size * 2))
+	end
+
+	def self.parse tokens
 		dbgElementsTokens "DSEnumDeclaration.parse", tokens
-		dbgElements "DSEnumDeclaration.parse"
-		super
+		if tokens[0].eql?("enum") and DSObject.isName(tokens[1])
+			name = tokens[1]
+			values = Array.new
+			consumed = 1
+			first = true
+			valid = true
+			while not tokens[consumed].eql?("end") do
+				if (first or tokens[consumed].eql?(","))
+					if DSObject.isName(tokens[consumed + 1])
+						values.push(tokens[consumed + 1])
+						consumed += 2
+					else
+						valid = false
+						break;
+					end
+				end
+				first = false
+			end
+			if(valid)
+				element = DSEnumDeclaration.new(name, values)
+			else
+				element = invalid()
+			end
+		else
+			element = invalid()
+		end
+		element
+	end
+
+	def format(indent)
+		s = "enum #{@name}"
+		first = true
+		@values.each do |v|
+			if first
+				s << "\n#{spaces(indent + 1)}#{v}"
+			else
+				s << ",\n#{spaces(indent + 1)}#{v}"
+			end
+			first = false
+		end
+		s << "\n#{spaces(indent)}end"
+		s
 	end
 end
 
@@ -511,7 +588,7 @@ class DSFunctionDeclaration < DSDeclaration
 				s << ", #{p}"
 			end
 		end
-		s << ")\n#{@block.format(indent)}end"
+		s << ")\n#{@block.format(indent)}"
 		s
 	end
 end
@@ -544,6 +621,9 @@ class DSExpression < DSStatement
 			element = DSBool.parse(tokens)
 		elsif tokens[0].eql?("nil")
 			dbgElements "NIL"
+		elsif [ "return", "break", "continue" ].include?(tokens[0])
+			puts "BUITIN_HELLO"
+			element = DSBuiltInFunction.parse(tokens)
 		elsif DSObject.isName(tokens[0]) and not @@keywords.include?(tokens[0])
 			if tokens[1].eql?("(")
 				# dbgElements "EXPRESSION FUNCTION CALL"
@@ -634,17 +714,6 @@ class DSBool < DSConstant
 	end
 end
 
-# DSVariable is for class memeber variables
-class DSVariable < DSExpression
-	def initialize
-		super
-		@constant = nil
-	end
-	def self.parse tokens
-		super
-	end
-end
-
 # DSOperation ####################################################################################################
 
 class DSOperation < DSExpression
@@ -719,7 +788,10 @@ class DSFunctionCall < DSExpression
 	end
 	def self.parse tokens
 		dbgElementsTokens "DSFunctionCall.parse", tokens
-		if not DSObject.isName(tokens[0]) or @@keywords.include?(tokens[0]) or not tokens[1].eql?("(")
+		puts "HELLO" + tokens[0]
+		if [ "return", "break", "continue" ].include?(tokens[0])
+			element = DSBuiltInFunction(tokens)
+		elsif not DSObject.isName(tokens[0]) or @@keywords.include?(tokens[0]) or not tokens[1].eql?("(")
 			element = invalid()
 		else
 			element = DSFunctionCall.new(tokens[0], tokens)
@@ -744,6 +816,49 @@ class DSFunctionCall < DSExpression
 		to_s
 	end
 	
+end
+
+# DSBuiltInFunction ####################################################################################################
+
+class DSBuiltInFunction < DSExpression
+	def initialize(name, expression)
+		super()
+		@name = name
+		@expression = expression
+		consumed = 1
+		if @name.eql?("return")#if expression == nil
+			consumed = consumed + @expression.getConsumed
+		end
+		consume consumed
+	end
+	def self.parse tokens
+		dbgElementsTokens "DSBuiltInFunction.parse", tokens
+		if [ "return", "break", "continue" ].include?(tokens[0])
+			if tokens[0].eql?("return")
+				expression = DSExpression.parse(tokens[1..-1])
+				if expression.isValid
+					element = DSBuiltInFunction.new(tokens[0], expression)
+				else
+					element = invalid()
+				end
+			else
+				element = DSBuiltInFunction.new(tokens[0], nil)
+			end
+		else
+			element = invalid()
+		end
+		element
+	end
+	def to_s
+		if @name.eql?("return")
+			"#{@name} #{@name.eql?("return") ? "#{expression.to_s}" : ""}"
+		else
+			"#{@name}"
+		end
+	end
+	def format(indent)
+		"#{@name} #{@name.eql?("return") ? @expression.format(indent) : ""}"
+	end
 end
 
 # DSControl ####################################################################################################
@@ -1126,9 +1241,6 @@ class DSSwitch < DSControl
 end
 
 # DSCase ####################################################################################################
-#			<switch> ::= switch <nested_expression> { <case> } end
-#				<case> ::= case <case_expression> <block> end
-#					<case_expression> ::= default | <nested_expression>
 
 class DSCase < DSObject
 	def initialize(expression, block, isDefault)
@@ -1182,3 +1294,4 @@ class DSCase < DSObject
 		"#{spaces(indent)}case #{ @isDefault ? " default" : "(#{@expression.to_s})"}\n#{@block.format(indent + 1)}"
 	end
 end
+

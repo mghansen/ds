@@ -1,18 +1,5 @@
-class MyClass
-	var value_
-	
-	/* This is a comment that spans lines.
-	 * It's a few lines long. // This is also part of the multi-line comment.
-	 * It ends here: */
-	
-	func MyClass(value)
-		value_ = value * 2
-		return "This return value will be ignored. This is the constructor."
-	end
-	
-	func get()
-		return value_
-	end
+enum nums
+	one, two, three, four, five
 end
 
 STOP_READING_HERE
@@ -206,13 +193,15 @@ class MyOtherClass from MyClass
 		parent(7)
 	end
 	
-	func ~MyOtherClass
+	func _MyOtherClass
 		print("I've seen things you people wouldn't believe.")
 	end
 	
 	func moreThanOneParam(one, two, three)
 		one = 1
+		break
 		print(two)
+		continue
 		three // Does nothing
 	end
 	
