@@ -217,7 +217,7 @@ class Tokenizer
 						numCharsToSkip = 1
 					else
 						puts "     >" + s if $verboseTokenizer
-						if s.eql? "DIEDIEDIE"
+						if s.eql? "STOP_READING_HERE"
 							@ignoreAll = true
 							return
 						end

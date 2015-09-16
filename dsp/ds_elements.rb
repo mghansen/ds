@@ -16,7 +16,7 @@ def dbgElementsTokens(text, tokens)
 	end
 end
 def spaces(indent)
-	s = ""#"<#{indent}>"
+	s = "<#{indent}>"
 	i = indent * $indentationLevel
 	while i > 0
 		s << " "
@@ -180,6 +180,7 @@ end
 class DSClassName < DSName
 	def initialize (name)
 		super
+		@name = name
 	end
 	def self.parse tokens
 		dbgElementsTokens "DSClassName.parse", tokens
@@ -240,7 +241,8 @@ class DSStatement < DSObject
 		"X"
 	end
 	def self.prefix(indent)
-		 "> #{spaces(indent)}"
+		 #"> #{spaces(indent)}"
+		 "#{spaces(indent)}"
 	end
 end
 
@@ -252,8 +254,8 @@ class DSBlock < DSObject
 		@statements = statements
 		@finalizingToken = finalizingToken
 		consumed = 0
-		statements.each { |s| consumed += s.getConsumed() }
-		consume consumed + 1 # + 1 is for "end"
+		@statements.each { |s| consumed += s.getConsumed() }
+		consume consumed + 1 # + 1 is for finalizing token ("end")
 		# puts "BLOCK CONSUMED #{getConsumed()} >>> #{to_s}"
 	end
 	
@@ -357,7 +359,7 @@ class DSDeclaration < DSStatement
 		if tokens[0].eql?("enum") and DSObject.isName(tokens[1]) and DSObject.isName(tokens[2])
 			#element = DSEnumDeclaration.parse(tokens)
 		elsif tokens[0].eql?("class") and DSObject.isName(tokens[1]) and DSObject.isName(tokens[2]) # tokens[2] might be "from"
-			#element = DSClassDeclaration.parse(tokens)
+			element = DSClassDeclaration.parse(tokens)
 		elsif tokens[0].eql?("func") and DSObject.isName(tokens[1]) and tokens[2].eql?("(")
 			element = DSFunctionDeclaration.parse(tokens)
 		else
@@ -393,15 +395,43 @@ end
 
 # TODO >
 class DSClassDeclaration < DSDeclaration
-	def initialize
-		super
-		@baseClass = ""
-		@functions = Array.new
-		@members = Array.new
+	def initialize(name, baseClass, block)
+		super()
+		@name = name
+		@baseClass = baseClass
+		@block = block
+		consume (2 + (@baseClass.size > 0 ? 2 : 0) + @block.getConsumed)
 	end
 	def self.parse tokens
 		dbgElements "DSClassDeclaration.parse"
-		super
+		if tokens[0].eql?("class") and DSObject.isName(tokens[1])
+			dbgElements "DSClassDeclaration.parse class name OK"
+			consumed = 2
+			if tokens[consumed].eql?("from") and DSObject.isName(tokens[consumed + 1])
+				dbgElements "DSClassDeclaration.parse class from OK"
+				from = tokens[1]
+				consumed += 2
+			else
+				from = ""
+			end
+			dbgElements "DSClassDeclaration.parse reading block"
+			block = DSBlock.parse(tokens[consumed..-1], [ "end" ])
+			if block.isValid
+				dbgElements "DSClassDeclaration.parse valid block"
+				element = DSClassDeclaration.new(tokens[0], from, block)
+			else
+				element = invalid()
+			end
+		else
+			element = invalid()
+		end
+		element
+	end
+	def to_s
+		"class #{@name}#{@baseClass.size > 0 ? " from #{@baseClass}" : ""}\n#{@block.to_s}"
+	end
+	def format(indent)
+		"class #{@name}#{@baseClass.size > 0 ? " from #{@baseClass}" : ""}\n#{@block.format(indent + 1)}"
 	end
 end
 
@@ -654,7 +684,7 @@ class DSOperation < DSExpression
 		s
 	end
 	def format(indent)
-		to_s.rjust
+		to_s
 	end
 	
 end 
@@ -880,9 +910,9 @@ class DSFor < DSControl
 		dbgElementsTokens "DSFor.parse", tokens
 		if tokens[0].eql?("for") and DSObject.isName(tokens[1])
 			if tokens[2].eql?("in") and DSObject.isName(tokens[3])
-				element = forIn.parse(tokens)
-			elsif tokens[2].eql?("from") 
-				element = forFrom.parse(tokens)
+				element = DSForIn.parse(tokens)
+			elsif tokens[2].eql?("from")
+				element = DSForFrom.parse(tokens)
 			else
 				element = invalid()
 			end
@@ -935,14 +965,14 @@ class DSForFrom < DSFor
 		variant = tokens[1]
 		consumed = 3
 		startExpression = DSExpression.parse(tokens[consumed..-1])
-		if startExpression.isValid and tokens[consumed + startExpression.consumed].eql?("to")
-			consumed += startExpression.consumed + 1
+		if startExpression.isValid and tokens[consumed + startExpression.getConsumed].eql?("to")
+			consumed += startExpression.getConsumed + 1
 			endExpression = DSExpression.parse(tokens[consumed..-1])
 			if endExpression.isValid
-				consumed += endExpression.consumed
-				block = DSBlock.parse(tokens[consumed..-1])
+				consumed += endExpression.getConsumed
+				block = DSBlock.parse(tokens[consumed..-1], [ "end" ])
 				if block.isValid
-					element = new DSForFrom(variant, startExpression, endExpression, block)
+					element = DSForFrom.new(variant, startExpression, endExpression, block)
 				else
 					element = invalid()
 				end
@@ -994,7 +1024,7 @@ class DSWhile < DSControl
 		"while(#{expression.to_s})\n#{block.to_s}\nend"
 	end
 	def format(indent)
-		"while(#{expression.to_s.rjust(indent)})\n#{block.to_s.rjust(indent)}\nend\n"
+		"while(#{@expression.format(indent)})\n#{@block.format(indent)}"
 	end
 end
 
@@ -1011,12 +1041,12 @@ class DSDo < DSControl
 		dbgElementsTokens "DSDo.parse", tokens
 		if tokens[0].eql?("do")
 			consumed = 1
-			block = DSBlock.new(tokens[consumed..-1], [ "while" ])
+			block = DSBlock.parse(tokens[consumed..-1], [ "while" ])
 			if block.isValid and tokens[consumed + block.getConsumed].eql?("(")
 				consumed += block.getConsumed + 1
 				expression = DSExpression.parse(tokens[consumed..-1])
 				if expression.isValid
-					element = new DSDo(block, expression)
+					element = DSDo.new(block, expression)
 				else
 					element = invalid()
 				end
@@ -1032,7 +1062,7 @@ class DSDo < DSControl
 		"do\n#{block.to_s}\nwhile(#{expression.to_s})"
 	end
 	def format(indent)
-		"#{spaces(indent)}do\n#{block.format(indent)}\n#{spaces(indent)}while(#{expression.to_s})\n"
+		"#{spaces(indent)}do\n#{@block.format(indent)}\n#{spaces(indent)}while(#{@expression.to_s})\n"
 	end
 end
 
@@ -1045,8 +1075,9 @@ class DSSwitch < DSControl
 		@expression = expression
 		@cases = cases
 		consumed = 2 + expression.getConsumed + 1
-		dscase.each { |c| consumed += c.getConsumed }
+		cases.each { |c| consumed += c.getConsumed }
 		consumed += 1
+		consume consumed
 	end
 	def self.parse tokens
 		dbgElementsTokens "DSSwitch.parse", tokens
@@ -1064,8 +1095,8 @@ class DSSwitch < DSControl
 					else
 						break
 					end
-				end while dscase.isValid
-				if cases.size > 0 and tokens[consumed].eql?("end")
+				end while dscase.isValid and not tokens[consumed].eql?("end")
+				if cases.size > 0 #and tokens[consumed].eql?("end")
 					element = DSSwitch.new(expression, cases)
 				else
 					element = invalid()
@@ -1085,9 +1116,10 @@ class DSSwitch < DSControl
 		s
 	end
 	def format(indent)
-		s = "#{spaces(indent)}switch(#{expression})\n"
-		cases.each { |c| s << c.format(indent + 2) << "\n" }
-		s << "#{spaces(indent)}end\n"
+		s = "switch(#{@expression})\n"
+		@cases.each { |c| s << c.format(indent + 1) << "\n" }
+		@cases.each { |c| s << c.format(indent + 1) << "\n" }
+		s << "#{spaces(indent)}end"
 		s
 		
 	end
@@ -1121,20 +1153,24 @@ class DSCase < DSObject
 				if expression.isValid and tokens[consumed + expression.getConsumed].eql?(")")
 					consumed += expression.getConsumed + 1
 				else
+					a=5/0
 					expression = nil
 				end
 			end
 			if expression != nil
-				block = DSBlock.parse(tokens[consumed..-1])
+				block = DSBlock.parse(tokens[consumed..-1], [ "end" ])
 				if block.isValid
 					element = DSCase.new(expression, block, isDefault)
 				else
+					a=5/0
 					element = invalid()
 				end
 			else
+				a=5/0
 				element = invalid()
 			end
 		else
+			a=5/0
 			element = invalid()
 		end
 		element
@@ -1143,6 +1179,6 @@ class DSCase < DSObject
 		"case#{isDefault ? " default" : "(#{@expression.to_s})"}\n#{@block.to_s}\nend"
 	end
 	def format(indent)
-		"#{spaces(indent)}case #{ isDefault ? " default" : "(#{@expression.to_s})"}\n#{@block.format(indent)}\n#{spaces(indent)}\nend\n"
+		"#{spaces(indent)}case #{ @isDefault ? " default" : "(#{@expression.to_s})"}\n#{@block.format(indent + 1)}"
 	end
 end

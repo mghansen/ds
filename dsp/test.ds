@@ -1,3 +1,23 @@
+class MyClass
+	var value_
+	
+	/* This is a comment that spans lines.
+	 * It's a few lines long. // This is also part of the multi-line comment.
+	 * It ends here: */
+	
+	func MyClass(value)
+		value_ = value * 2
+		return "This return value will be ignored. This is the constructor."
+	end
+	
+	func get()
+		return value_
+	end
+end
+
+STOP_READING_HERE
+
+"if else:"
 if(alpha)
 	f(6)
 	call(beta)
@@ -6,12 +26,12 @@ else
 	a = foo()
 end
 
+"if:"
 if(false)
 	Maybe
 end
 
-DIEDIEDIE
-
+"big nested if:"
 if(1)
 	if(2)
 		if(3)
@@ -27,12 +47,13 @@ if(1)
 else
 	call("param")
 end
-asdf = 2
 
+"if:"
 if(false)
 	Maybe
 end
 
+"if elsif else:"
 if(true)
 	Apple
 	Baby
@@ -50,59 +71,52 @@ else(10 < 6)
 	Lice
 end
 
-DIEDIEDIE
+"assign with b:"
 b = 1 + 2
 b = call("t-rex", 5) - 6 * (Bubbles && false)
-DIEDIEDIE
 b = (call((1), "two", (three((4), 2, (123)))))
 b
 a = call(1, "Two", three(3))
 a = (("hello"))
 a = (((1)))
 
-
+"assign with a:"
 a = -5
 a = -5.0
 a = false
 a = true
 a = foo
 a = 123456.213456
-a = 123456.
 a = -5.55555
 a = 5
 b = "I'm a string"
-DIEDIEDIE
 
+"assign with _:"
 Breakfast = 2
 _12435 = Bubbles
 
-
+"simple func with use:"
 func phooey(param1, param2)
 	use foo
 end
 
+"use:"
 use sampleLib
 
+"empty func"
 func empty()
 end
 
-
-func empty()
-	use foo
-end
-
-
+"func print(whatever) empty:"
 func print(whatever)
 	// TODO: Libraries
 end
 
+"func with return:"
 func seven()
 	return 7
 end
 
-DIEDIEDIE
-
-DIEDIEDIE
 //----------------------------------------------------------------------------------------------------
 
 func main(params)
@@ -123,14 +137,14 @@ func main(params)
 		print("This is a string.")
 	end
 	
-	while 7 > a
+	while(7 > a)
 		a = a + 1
 		// Here's a comment
 	end
 	
 	b = 1
 	c = b < a
-	if c then
+	if (c) then
 		c = seven()
 	end
 	
@@ -142,15 +156,17 @@ func main(params)
 	do
 		print(seven() + (b - 6))
 		b = b * 2
-	while b < 1000 * 10
+	while(b < 1000 * 10)
 	
 	q = "donuts"
-	switch "donuts"
-		case "fritters":
+	switch("donuts")
+		case("fritters")
 			print("fritters will now print twice")
-		case "bacon":
+		end
+		case("bacon")
 			print("fritters for the last time")
-		case q:
+		end
+		case(q)
 			print("This is the real answer.")
 		end
 	end
@@ -180,6 +196,8 @@ class MyClass
 	end
 end
 
+STOP_READING_HERE
+
 //----------------------------------------------------------------------------------------------------
 
 class MyOtherClass from MyClass
@@ -205,23 +223,4 @@ class MyOtherClass from MyClass
 	
 end	
 
-to (a + 3)
-to(b+0)
-for i from a to (a + 3) * 2
-print(10)
-print("This is a string.")
-
-"\n"
-"\\n"
-/END/
-
-one/*two*/three
-alpha/*bravo
-charlie
-delta*/easter*/
-friday/*gatsby/*hipster/*india*/just
-one
-two
-newline
-
-+= asdf==qwdf qwdf== ==asdktj ++i /* asdf */ after
+STOP_READING_HERE
