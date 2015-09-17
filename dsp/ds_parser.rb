@@ -25,6 +25,7 @@ class Parser
 	
 	def tokenize
 		@tokenizer.tokenizeLines @lineList
+		@tokenizer.combineClassNames
 		@tokenizer.showTokens #if $verboseParser
 	end
 	
@@ -33,12 +34,17 @@ class Parser
 		i = 0
 		while i < tokenList.getSize - 1 do
 			tokens = tokenList.getFrom(i)
+			#puts "*#{i}*"
+			dbgParser "PARSING: #{tokens[0]} #{tokens[1]} #{tokens[2]} #{tokens[3]} #{tokens[4]} ..."
+			
 			element = DSStatement.parse(tokens) # TODO: Support this in more than one document
 			if element == nil
 				dbgParser "stopping on missing element: #{tokens[0]} #{tokens[1]} #{tokens[2]} #{tokens[3]} #{tokens[4]} ..."
+				a = 5/0
 				return
 			elsif !element.isValid
 				dbgParser "stopping on invalid element: #{tokens[0]} #{tokens[1]} #{tokens[2]} #{tokens[3]} #{tokens[4]} ..."
+				a = 5/0
 				return
 			else
 				#dbgParser "> (#{element.getConsumed()}) #{element.to_s}"
@@ -47,6 +53,7 @@ class Parser
 				@elements.push(element)
 				consumed = element.getConsumed().to_i
 				i += (consumed == 0) ? 1 : consumed
+				#puts "CONSUMED #{consumed}"
 			end
 		end
 		

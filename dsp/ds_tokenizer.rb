@@ -39,6 +39,10 @@ class Tokenizer
 		linelist.each { |line| tokenizeLine(line) }
 	end
 	
+	def combineClassNames
+		@tokenList.combineClassNames
+	end
+	
 	def tokenizeLine(line) 
 	
 		return if @ignoreAll
@@ -285,6 +289,69 @@ class TokenList
 	
 	def getSize()
 		@tokens.size
+	end
+	
+	def combineClassNames
+		tokens = @tokens
+		newTokenList = Array.new
+		i = 0
+		cumulative = ""
+		
+		#dbgElementsTokens "TokenList.combineClassNames", tokens
+		
+		while i < tokens.size do
+			prev = (i == 0 ? " " : tokens[i - 1])
+			cur = tokens[i]
+			after = ((i >= tokens.size - 1) ? " " : tokens[i + 1])
+			if i == 0
+				if DSObject.isName(cur)
+					cumulative = cur
+				else
+					newTokenList.push(cur)
+				end
+			else
+				if cur == '.'
+					if cumulative.size == 0
+						newTokenList.push(cur)
+					else
+						if DSObject.isName(after)
+							cumulative << ".#{after}"
+							i += 1
+						else
+							newTokenList.push(cumulative)
+							newTokenList.push(cur)
+							cumulative = ""
+						end
+					end
+				elsif DSObject.isName(cur)
+					if cumulative.size == 0
+						cumulative << cur
+					else
+						newTokenList.push(cumulative)
+						cumulative = cur
+					end
+				else
+					if cumulative.size > 0
+						newTokenList.push(cumulative)
+						cumulative = ""
+						newTokenList.push(cur)
+					else
+						newTokenList.push(cur)
+					end
+				end
+			end
+			i += 1
+		end
+		if(cumulative.size > 0)
+			newTokenList.push(cur)
+		end
+		
+		@tokens = newTokenList
+		
+		#s = ""
+		#newTokenList.each { |t| s << "/#{t}/" }
+		#s << "\n"
+		#puts s
 	end
 	
 end

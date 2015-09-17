@@ -15,6 +15,7 @@
 		<decl_use> ::= use <file_name>
 			<file_name> ::= <name>
 		
+		// Declaration as assignment?
 		<assignment> ::= <var_name> <assignment_operator> <assignment_rvalue> // Can be function call to class name
 			<var_name> ::= <qname> | <qname_array>
 				<qname> ::= { <name_scope> } <name>
@@ -23,14 +24,14 @@
 			<assignment_operator> ::= "=" | "+=" | "-=" | "*=" | "/="
 			<assignment_rvalue> ::= <expression> | new <class_name> | array of <expression>
 
-		<declaration> ::=  <decl_enum> | <decl_class> | <decl_member> | <decl_function>
+		<declaration> ::=  <decl_enum> | <decl_class> | <decl_var> | <decl_function>
 			<decl_enum> ::= enum <enum_name> <enum_value> { ',' <enum_value> } end
 				<enum_name> ::= <name>
 				<enum_value> ::= <var_name>
-			<decl_class> ::= class <class_name> <decl_base_class> { <decl_function> | <decl_member> } end
+			<decl_class> ::= class <class_name> <decl_base_class> { <decl_function> | <decl_var> } end
 				<class_name> ::= <name>
 				<decl_base_class> ::= from <class_name>
-			<decl_member> ::= var <var_name> // assignment?
+			<decl_var> ::= var <var_name> // assignment?
 			<decl_function> ::= function <name> ( <decl_params> ) <block> end
 				<decl_params> ::= <name> { , <name> }
 				<block> ::= { <statement> }

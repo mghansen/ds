@@ -1,3 +1,47 @@
+
+class MyOtherClass from MyClass
+	func foo ()
+		parent(7)
+	end
+	
+	class MyEmbeddedClass
+		var ten
+		func blah(param23)
+			functionname(withparam, and, four, params)
+		end
+	end
+
+	
+end
+
+func MyOtherClass ()
+	parent(7)
+end
+	
+STOP_READING_HERE
+	func _MyOtherClass()
+		print("I've seen things you people wouldn't believe.")
+	end
+	
+	func moreThanOneParam(one, two, three)
+		one = 1
+		break
+		print(two)
+		continue
+		three // Does nothing
+	end
+	
+	func get(brave, little, toaster)
+		// This overrides the function in MyClasss.
+		return parent.get()
+	end
+	
+end	
+
+STOP_READING_HERE
+
+f = g.h.i
+
 enum nums
 	one, two, three, four, five
 end
