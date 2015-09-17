@@ -35,9 +35,9 @@ class Parser
 		while i < tokenList.getSize - 1 do
 			tokens = tokenList.getFrom(i)
 			#puts "*#{i}*"
-			dbgParser "PARSING: #{tokens[0]} #{tokens[1]} #{tokens[2]} #{tokens[3]} #{tokens[4]} ..."
+			#dbgParser "PARSING: #{tokens[0]} #{tokens[1]} #{tokens[2]} #{tokens[3]} #{tokens[4]} ..."
 			
-			element = DSStatement.parse(tokens) # TODO: Support this in more than one document
+			element = DSStatement.parse(tokens) # TODO: Do this for more than one document? Maybe dsi will do that.
 			if element == nil
 				dbgParser "stopping on missing element: #{tokens[0]} #{tokens[1]} #{tokens[2]} #{tokens[3]} #{tokens[4]} ..."
 				a = 5/0
@@ -49,7 +49,7 @@ class Parser
 			else
 				#dbgParser "> (#{element.getConsumed()}) #{element.to_s}"
 				indent = 0
-				dbgParser "#{DSStatement.prefix(indent)}#{element.format(indent)}"
+				dbgParser "#{element.format(indent)}"
 				@elements.push(element)
 				consumed = element.getConsumed().to_i
 				i += (consumed == 0) ? 1 : consumed

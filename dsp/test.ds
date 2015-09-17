@@ -1,153 +1,24 @@
 
-class MyOtherClass from MyClass
-	func foo ()
-		parent(7)
+class one from two
+	func three(four)
+		five = 6
 	end
-	
-	class MyEmbeddedClass
-		var ten
-		func blah(param23)
-			functionname(withparam, and, four, params)
+end
+
+
+	switch("donuts")
+		case("fritters")
+			print("fritters will now print twice")
+		end
+		case("bacon")
+			print("fritters for the last time")
+		end
+		case(q)
+			print("This is the real answer.")
 		end
 	end
 
 	
-end
-
-func MyOtherClass ()
-	parent(7)
-end
-	
-STOP_READING_HERE
-	func _MyOtherClass()
-		print("I've seen things you people wouldn't believe.")
-	end
-	
-	func moreThanOneParam(one, two, three)
-		one = 1
-		break
-		print(two)
-		continue
-		three // Does nothing
-	end
-	
-	func get(brave, little, toaster)
-		// This overrides the function in MyClasss.
-		return parent.get()
-	end
-	
-end	
-
-STOP_READING_HERE
-
-f = g.h.i
-
-enum nums
-	one, two, three, four, five
-end
-
-STOP_READING_HERE
-
-"if else:"
-if(alpha)
-	f(6)
-	call(beta)
-else
-	call(gamma)
-	a = foo()
-end
-
-"if:"
-if(false)
-	Maybe
-end
-
-"big nested if:"
-if(1)
-	if(2)
-		if(3)
-			123
-		else
-			call(12)
-		end
-	elsif(4)
-		124
-	elsif(5)
-		call(125)
-	end
-else
-	call("param")
-end
-
-"if:"
-if(false)
-	Maybe
-end
-
-"if elsif else:"
-if(true)
-	Apple
-	Baby
-	Cauldron
-	Dippindots
-elsif(true)
-	Enough
-	French
-	Gravy
-else(10 < 6)
-	Having
-	Ice
-	Just
-	Kills
-	Lice
-end
-
-"assign with b:"
-b = 1 + 2
-b = call("t-rex", 5) - 6 * (Bubbles && false)
-b = (call((1), "two", (three((4), 2, (123)))))
-b
-a = call(1, "Two", three(3))
-a = (("hello"))
-a = (((1)))
-
-"assign with a:"
-a = -5
-a = -5.0
-a = false
-a = true
-a = foo
-a = 123456.213456
-a = -5.55555
-a = 5
-b = "I'm a string"
-
-"assign with _:"
-Breakfast = 2
-_12435 = Bubbles
-
-"simple func with use:"
-func phooey(param1, param2)
-	use foo
-end
-
-"use:"
-use sampleLib
-
-"empty func"
-func empty()
-end
-
-"func print(whatever) empty:"
-func print(whatever)
-	// TODO: Libraries
-end
-
-"func with return:"
-func seven()
-	return 7
-end
-
 //----------------------------------------------------------------------------------------------------
 
 func main(params)
@@ -162,7 +33,7 @@ func main(params)
 	end
 	
 	// This is a comment
-	if a  == 6 then
+	if(a  == 6)then
 		print(10)
 	else
 		print("This is a string.")
@@ -227,17 +98,16 @@ class MyClass
 	end
 end
 
-STOP_READING_HERE
 
 //----------------------------------------------------------------------------------------------------
 
 class MyOtherClass from MyClass
 
-	func MyOtherClass
+	func MyOtherClass()
 		parent(7)
 	end
 	
-	func _MyOtherClass
+	func _MyOtherClass()
 		print("I've seen things you people wouldn't believe.")
 	end
 	
@@ -257,3 +127,166 @@ class MyOtherClass from MyClass
 end	
 
 STOP_READING_HERE
+
+f = g.h.i
+
+enum nums
+	one, two, three, four, five
+end
+
+STOP_READING_HERE
+
+enum nums
+	one, two, three, four, five
+end
+
+func moreThanOneParam(one, two, three)
+	one = 1
+	break
+	print(two)
+	continue
+	three // Does nothing
+end
+
+class One from Two
+	func three ()
+		four()
+		six(7)
+	end
+	
+
+	class MyEmbeddedClass
+		var ten
+		func blah(param23)
+			functionname(withparam, and, four, params)
+		end
+	end
+
+	
+end
+
+func MyOtherClass ()
+	parent(7)
+end
+	
+func _MyOtherClass()
+	print("I've seen things you people wouldn't believe.")
+end
+
+func moreThanOneParam(one, two, three)
+	one = 1
+	break
+	print(two)
+	continue
+	3 // Does nothing
+end
+
+func get(brave, little, toaster)
+	// This overrides the function in MyClasss.
+	return parent.get()
+end
+	
+
+STOP_READING_HERE
+
+
+"if else:"
+if(alpha)
+	f(6)
+	call(beta)
+else
+	call(gamma)
+	a = foo()
+end
+
+"if:"
+if(false)
+	Maybe
+end
+
+"big nested if:"
+if(1)
+	if(2)
+		if(3)
+			123
+		else
+			call(12)
+		end
+	elsif(4)
+		124
+	elsif(5)
+		call(125)
+	end
+else
+	call("param")
+end
+
+"if:"
+if(false)
+	Maybe
+end
+
+"if elsif else:"
+if(true)
+	Apple
+	Baby
+	Cauldron
+	Dippindots
+elsif(true)
+	Enough
+	French
+	Gravy
+else
+	Having
+	Ice
+	Just
+	Kills
+	Lice
+end
+
+"assign with b:"
+b = 1 + 2
+b = call("t-rex", 5) - 6 * (Bubbles && false)
+b = (call((1), "two", (three((4), 2, (123)))))
+b
+a = call(1, "Two", three(3))
+a = (("hello"))
+a = (((1)))
+
+"assign with a:"
+a = -5
+a = -5.0
+a = false
+a = true
+a = foo
+a = 123456.213456
+a = -5.55555
+a = 5
+b = "I'm a string"
+
+"assign with _:"
+Breakfast = 2
+_12435 = Bubbles
+
+"simple func with use:"
+func phooey(param1, param2)
+	use foo
+end
+
+"use:"
+use sampleLib
+
+"empty func"
+func empty()
+end
+
+"func print(whatever) empty:"
+func print(whatever)
+	// TODO: Libraries
+end
+
+"func with return:"
+func seven()
+	return 7
+end
+
