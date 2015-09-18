@@ -45,8 +45,8 @@ class Loader
 				context.addVar(name)
 				
 			elsif s.is_a?(DSEnumDeclaration)
-				name = s.GetName
-				values = s.GetValues
+				name = s.getName
+				values = s.getValues
 				context.addEnum(name, values)
 				
 			elsif s.is_a?(DSClassDeclaration)
@@ -93,10 +93,9 @@ class Loader
 		context = DsiFunctionContext.new(name, params)
 		
 		instructions = Array.new
-		# Includes control (if, for, while, do, switch), 
-		#          assignment (var declarations and assignments modify the context),
-		#          function calls and built in functions
-		# Included by other instructions are expressions and operations
+		# Includes actions (function calls, assignment, operations, other expressions),
+		#          var declarations (which modify the context),
+		#          control (if, for, while, do, switch, break, continue, return)
 		
 		declaration.getStatements.each do |statement|
 			# parse statements into instructions

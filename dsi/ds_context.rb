@@ -107,7 +107,7 @@ end
 class DsiFunctionContext < DsiContext
 	def initialize(name, params)
 		@name = name
-		@params = params
+		@params = params # names, not expressions
 		@vars = Set.new
 		@instructions = nil	
 	end
@@ -156,13 +156,57 @@ end
 class DsiControl < DsiInstruction
 end
 
-class DsiAssignment < DsiInstruction
+class DsiAction < DsiInstruction
+	def initialize
+	end
+	def evaluate(state)
+		nil
+	end
+	
 end
 
-class DsiFunctionCall < DsiInstruction
+class DsiAssignment < DsiAction
+	def initizlize(lValue, operator, rValue)
+		@lValue = lValue
+		@operator = operator
+		@rValue = rValue
+	end
+	def evaluate(state)
+		rValue = @rValue.evaluate
+		# Find the variable in lValue and make the assignment
+	end
 end
+
+class DsiFunctionCall < DsiAction
+	def initialize(name, params)
+		@name = name
+		@params = params # expressions, not names
+	end
+	def evaluate(state)
+		# Set up internal state of the function, including named params
+		# Loop through instructions
+	end
+end
+
+class DsiOperation < DsiAction
+	def initizlize(lValue, operator, rValue)
+		@lValue = lValue
+		@operator = operator
+		@rValue = rValue
+	end
+	def evaluate(state)
+		lValue = @lValue.evaluate
+		rValue = @rValue.evaluate
+		# Switch on operator
+	end
+def
+
+
+
+
 
 class DsiVariable
+	# This is more of a runtime object and shouldn't go here with the contexts
 	# number, string, bool, enum, object, function, or Nil
 end
 
