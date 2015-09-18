@@ -492,6 +492,18 @@ class DSFunctionDeclaration < DSDeclaration
 		consume 3 + (params.size > 0 ? params.size * 2 : 1) + block.getConsumed()
 	end
 	
+	def getName
+		@name
+	end
+	
+	def getParams
+		@params
+	end
+	
+	def getStatements
+		@block.getStatements
+	end
+	
 	def self.parse tokens
 		dbgElementsTokens "DSFunctionDeclaration.parse", tokens
 		if(tokens[0].eql?("func") and DSObject.isName(tokens[1]) and tokens[2].eql?("("))

@@ -3,6 +3,8 @@ require_relative '../dsp/ds_elements'
 require_relative 'ds_context'
 
 # Loader ####################################################################################################
+#
+# Creates context objects from the syntax objects in the parser
 
 class Loader
 
@@ -32,67 +34,77 @@ class Loader
 
 	def loadGlobalContext(statements)
 		# Allowed in the global context are use, variable declaration, enum declaration, class declaration, function declaration
-		context = Context.new
+		context = DsiGlobalContext.new
 		statements.each do |s|
-			if s.is_a>(DSUse)
-				item = new DsiUse(s.getFilename)
-				context.addUse(item)
+			if s.is_a?(DSUse)
+				name = new DsiUse(s.getFilename)
+				context.addUse(name)
 				
-			elsif s.is_a>(DSVariableDeclaration)
-				item = new DsiVar(s.getName)
-				context.addVar(item)
+			elsif s.is_a?(DSVariableDeclaration)
+				name = new DsiVar(s.getName)
+				context.addVar(name)
 				
-			elsif s.is_a>(DSEnumDeclaration)
+			elsif s.is_a?(DSEnumDeclaration)
 				name = s.GetName
 				values = s.GetValues
-				item = new DsiEnum(name, values)
-				context.addEnum(item)
+				context.addEnum(name, values)
 				
-			elsif s.is_a>(DSClassDeclaration)
+			elsif s.is_a?(DSClassDeclaration)
 				item = loadClassContext(s)
-				context.addClass(item)
+				if item.isValid
+					context.addClass(item)
+				end
 				
-			elsif s.is_a>(DSClassDeclaration)
+			elsif s.is_a?(DSClassDeclaration)
 				item = loadFunctionContext(s)
-				context.addFunction(item)
+				if item.isValid
+					context.addFunction(item)
+				end
 			end
 		end
 		context
 	end
 	
-	def loadClassContext(DSClassDeclaration decl)
+	def loadClassContext(declaration)
 		# Allowed in a class are variable declaration, function declaration
-		context = DsiFunctionContext.new
-		context.name = decl.getName
-		context.baseClass = decl.getBaseClass
+		name = declaration.getName
+		baseClass = declaration.getBaseClass
+		context = DsiFunctionContext.new(name, baseClass)
 		
-		decl.getBlock.each do |s|
-		
-			if s.is_a>(DSVariableDeclaration)
-				item = new DsiVar(s.getName)
-				context.addVar(item)
+		declaration.getBlock.each do |s|
+			if s.is_a?(DSVariableDeclaration)
+				context.addVar(s.getName)
 				
-			elsif s.is_a>(DSFunctionDeclaration)
-				name = s.getName
-				baseClass = s.getBaseClass
-				statements = s.getBlock
-				functionContext = new DsiFunctionContext(name, baseclass, statements)
-				context.addFunction(item)
+			elsif s.is_a?(DSFunctionDeclaration)
+				item = loadFunctionContext(s)
+				if item.isValid
+					context.addFunction(item)
+				end
 			end
 		end
 		context
 		
 	end
 	
-	def loadFunctionContext(globalContext, statements)
+	def loadFunctionContext(declaration)
 		# Allowed in a function are variable declarations and instructions
-		context = context.new
-		# ...
+		name = declaration.getName
+		params = declaration.getParams
+		context = DsiFunctionContext.new(name, params)
+		
+		instructions = Array.new
+		# Includes control (if, for, while, do, switch), 
+		#          assignment (var declarations and assignments modify the context),
+		#          function calls and built in functions
+		# Included by other instructions are expressions and operations
+		
+		declaration.getStatements.each do |statement|
+			# parse statements into instructions
+		end
+
+		context.setInstructions(instructions)
 		context
 	end
 	
-	
-
 end
 
-	
