@@ -28,8 +28,8 @@ dspMain
 =begin
 TODO:
 	Unary operators ++ --
-	Assignment operators += -= etc.
 	Arrays and other containers
-	break/continue
+	new Class
 	constructor params
+	Nil
 =end

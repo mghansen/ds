@@ -24,7 +24,7 @@
 			<assignment_operator> ::= "=" | "+=" | "-=" | "*=" | "/="
 			<assignment_rvalue> ::= <expression> | new <class_name> | array of <expression>
 
-		<declaration> ::=  <decl_enum> | <decl_class> | <decl_var> | <decl_function>
+		<declaration> ::=  <decl_enum> | <decl_class> | <decl_member> | <decl_function>
 			<decl_enum> ::= enum <enum_name> <enum_value> { ',' <enum_value> } end
 				<enum_name> ::= <name>
 				<enum_value> ::= <var_name>

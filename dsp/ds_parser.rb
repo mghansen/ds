@@ -14,10 +14,11 @@ class Parser
 	def initialize
 		@tokenizer = Tokenizer.new
 		@lineList = LineList.new
-		@elements = Array.new
+		@document = ""
 	end
 	
 	def loadFile(filename)
+		@filename = filename
 		input_file = File.new(filename, 'r')
 		input_file.each_line { |line| @lineList.add(line) }
 		input_file.close
@@ -31,34 +32,19 @@ class Parser
 	
 	def parseAll
 		tokenList = @tokenizer.getTokenList()
-		i = 0
-		while i < tokenList.getSize - 1 do
-			tokens = tokenList.getFrom(i)
-			#puts "*#{i}*"
-			#dbgParser "PARSING: #{tokens[0]} #{tokens[1]} #{tokens[2]} #{tokens[3]} #{tokens[4]} ..."
-			
-			element = DSStatement.parse(tokens) # TODO: Do this for more than one document? Maybe dsi will do that.
-			if element == nil
-				dbgParser "stopping on missing element: #{tokens[0]} #{tokens[1]} #{tokens[2]} #{tokens[3]} #{tokens[4]} ..."
-				a = 5/0
-				return
-			elsif !element.isValid
-				dbgParser "stopping on invalid element: #{tokens[0]} #{tokens[1]} #{tokens[2]} #{tokens[3]} #{tokens[4]} ..."
-				a = 5/0
-				return
-			else
-				#dbgParser "> (#{element.getConsumed()}) #{element.to_s}"
-				indent = 0
-				dbgParser "#{element.format(indent)}"
-				@elements.push(element)
-				consumed = element.getConsumed().to_i
-				i += (consumed == 0) ? 1 : consumed
-				#puts "CONSUMED #{consumed}"
-			end
+		tokens = tokenList.getFrom(0)
+		@document = DSDocument.parse(tokens, @input_filename)
+		if @document.isValid
+			indent = 0
+			dbgParser "#{@document.format(indent)}"
+		else
+			dbgParser "Document \"#{@filename}\" could not be parsed"
 		end
-		
 	end
 	
+	def getDocument
+		@document
+	end
 end
 
 # LineList ####################################################################################################
