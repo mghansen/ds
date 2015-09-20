@@ -18,7 +18,7 @@ def dsiMain
 	
 	loader = Loader.new()
 	loader.loadFile("#{ARGV[0]}")
-	#context = loader.getContext
+#	#context = loader.getContext
 
 end
 

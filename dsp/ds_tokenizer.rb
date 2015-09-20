@@ -275,7 +275,7 @@ class TokenList
 	def to_s
 		output = ""
 		@tokens.each do |t|
-			break if t.eql? "DIEDIEDIE"
+			#break if t.eql? "STOP"
 			output << t != "%" ? "#{t}" : "%% "
 			output << " "
 		end

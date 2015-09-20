@@ -32,4 +32,6 @@ TODO:
 	new Class
 	constructor params
 	Nil
+	return should be a reserved word but not part of parsing
+	break and continue as function calls?
 =end

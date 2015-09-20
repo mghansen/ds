@@ -1,22 +1,42 @@
+func one()
+	a = 1 + 2
+end
+
+STOP_READING_HERE
 
 class one from two
 	func three(four)
 		five = 6
 	end
-end
-
-
 	switch("donuts")
-		case("fritters")
+		case "fritters"
 			print("fritters will now print twice")
 		end
-		case("bacon")
+		case "bacon" 
 			print("fritters for the last time")
 		end
-		case(q)
+		case q 
 			print("This is the real answer.")
 		end
 	end
+
+end
+
+STOP_READING_HERE
+	switch(a)
+		case (3)
+			a = 4 + 5
+		end
+	end
+
+	switch("donuts")
+		case "fritters"
+			print("fritters will now print twice")
+		end
+	end
+
+STOP_READING_HERE
+
 
 	
 //----------------------------------------------------------------------------------------------------

@@ -1,10 +1,18 @@
 require 'set'
 
+$verboseContext = true
+
+def debugContext text
+	puts text if $verboseContext
+end
+
 # DsiContext ####################################################################################################
 
 class DsiContext
-	def initialize
+	def initialize(name)
+		debugContext "DsiContext #{name}"
 		@valid = true
+		@name = name
 	end
 	
 	def isValid
@@ -21,6 +29,8 @@ end
 class DsiGlobalContext < DsiContext
 	# Allowed in the global context are use, variable declaration, enum declaration, class declaration, function declaration
 	def initialize
+		debugContext "DsiGlobalContext"
+		super("0_GLOBAL_CONTEXT")
 		@uses = Set.new
 		@vars = Set.new
 		@enums = Array.new
@@ -76,11 +86,12 @@ end
 # DsiClassContext ####################################################################################################
 
 class DsiClassContext < DsiContext
-	def initialize(name, baseClass)
-		@name = name
+	def initialize(name, baseClass, vars, functionContexts)
+		debugContext "DsiClassContext #{name} #{baseClass}"
+		super(name)
 		@baseClass = baseClass
-		@vars = Set.new
-		@functionContexts = Array.new
+		@vars = vars
+		@functionContexts = functionContexts
 	end
 	
 	def getName
@@ -105,19 +116,16 @@ end
 # DsiFunctionContext ####################################################################################################
 
 class DsiFunctionContext < DsiContext
-	def initialize(name, params)
-		@name = name
-		@params = params # names, not expressions
-		@vars = Set.new
-		@instructions = nil	
+	def initialize(name, paramNames, vars, instructions)
+		debugContext "DsiFunctionContext #{name}"
+		super(name) # TODO: Scope
+		@paramNames = paramNames
+		@vars = vars
+		@instructions = instructions
 	end
 
 	def getName
 		@name
-	end
-	
-	def addVar(var)
-		@vars.add(var)
 	end
 	
 	def setInstructions(instructions)
@@ -125,48 +133,29 @@ class DsiFunctionContext < DsiContext
 	end
 end
 
-# DsiItem ####################################################################################################
-
-class DsiItem < DsiContext
-end
-
-class DsiEnum < DsiItem
-	def initialize(name, values)
-		@name = name
-		@value = values
-	end
-	
-	def getName
-		@name
-	end
-	
-	def getValues
-		@values
-	end
-		
-end
-
 # DsiInstruction ####################################################################################################
 
 class DsiInstruction
 	def initialize
-	end
-end
-
-class DsiControl < DsiInstruction
-end
-
-class DsiAction < DsiInstruction
-	def initialize
+		debugContext "DsiInstruction"
 	end
 	def evaluate(state)
 		nil
 	end
-	
 end
 
-class DsiAssignment < DsiAction
+class DsiUse < DsiInstruction
+	def initialize(filename)
+		debugContext "DsiUse #{filename}"
+		super()
+		filename = @filename
+	end
+end
+
+class DsiAssignment < DsiInstruction
 	def initizlize(lValue, operator, rValue)
+		debugContext "DsiAssignment #{lValue} #{operator}"
+		super()
 		@lValue = lValue
 		@operator = operator
 		@rValue = rValue
@@ -177,10 +166,110 @@ class DsiAssignment < DsiAction
 	end
 end
 
-class DsiFunctionCall < DsiAction
-	def initialize(name, params)
+# TODO: Control instructions
+
+class DsiIf < DsiInstruction
+	def initialize(conditions)
+		debugContext "DsiIf"
+		super()
+		@conditions = conditions
+	end
+end
+
+class DsiCondition < DsiInstruction
+	def initialize(conditionType, expression, statemets)
+		debugContext "DsiCondition #{conditionType}"
+		super()
+		@conditionType = conditionType
+		@expression = expression
+		@statements = statements
+	end
+end
+
+class DsiForIn < DsiInstruction
+	def initialize(variant, set, statements)
+		debugContext "DsiForIn #{variant} in #{set}"
+		super()
+		@variant = variant
+		@set = set
+		@statements = statements
+	end
+end
+
+class DsiForFrom < DsiInstruction
+	def initialize(variant, startExpression, endExpression, statements)
+		debugContext "DsiForFrom #{variant}"
+		super()
+		@variant = variant
+		@startExpression = startExpression
+		@endExpression = endExpression
+		@statements = statement
+	end
+end
+
+class DsiWhile < DsiInstruction
+	def initialize(expression, statements)
+		debugContext "DsiWhile"
+		super()
+		@expression = expression
+		@statements = statements
+	end
+end
+
+class DsiDo
+	def initialize(statements, expression)
+		debugContext "DsiDo"
+		super()
+		@statements = statements
+		@expression = expression
+	end
+end
+
+class DsiSwitch
+	def initialize(expression, cases)
+		debugContext "DsiSwitch"
+		super()
+		@expression = expression
+		@cases = cases
+	end
+end
+	
+class DsiCase
+	def initialize(expression, statements)
+		debugContext "DsiCase"
+		super()
+		@expression = expression
+		@statements = statements
+	end
+end
+
+# DsiExpression ####################################################################################################
+
+class DsiExpression < DsiInstruction
+	def initialize
+		debugContext "DsiExpression"
+		super
+	end
+	def evaluate(state)
+	end
+end
+
+class DsiOperation < DsiExpression
+	def initialize(leftExpression, operator, rightExpression)
+		debugContext "DsiOperation #{operator}"
+		super()
+		@leftExpression = leftExpression
+		@operator = operator
+		@rightExpression = rightExpression
+	end
+end
+
+class DsiFunctionCall < DsiExpression
+	def initialize(name, paramExpressions)
+		debugContext "DsiFunctionCall #{name}"
+		super()
 		@name = name
-		@params = params # expressions, not names
+		@paramExpressions = paramExpressions
 	end
 	def evaluate(state)
 		# Set up internal state of the function, including named params
@@ -188,32 +277,97 @@ class DsiFunctionCall < DsiAction
 	end
 end
 
-class DsiOperation < DsiAction
-	def initizlize(lValue, operator, rValue)
-		@lValue = lValue
-		@operator = operator
-		@rValue = rValue
+class DsiValue < DsiExpression
+	# Can be number, string, bool, enum, functionCall, array, or var
+	# Part of state
+	def initialize(value)
+		debugContext "DsiValue"
+		super()
+		@value = value
 	end
-	def evaluate(state)
-		lValue = @lValue.evaluate
-		rValue = @rValue.evaluate
-		# Switch on operator
+end	
+
+class DsiNumberValue < DsiValue
+	def initialize(value)
+		debugContext "DsiNumberValue #{value}"
+		super
 	end
-def
-
-
-
-
-
-class DsiVariable
-	# This is more of a runtime object and shouldn't go here with the contexts
-	# number, string, bool, enum, object, function, or Nil
 end
 
-# Expression can be:
-#	Value: (Number, String, Bool, Enum, Nil)
-#	Variable: (Value + Object, Function)
-#	Function calls (not built-in)
-#	Operation
+class DsiStringValue < DsiValue
+	def initialize(value)
+		debugContext "DsiStringValue #{value}"
+		super
+	end
+end
 
-	
+class DsiBoolValue < DsiValue
+	def initialize(value)
+		debugContext "DsiBoolValue #{value}"
+		super
+	end
+end
+
+class DsiEnumValue < DsiValue
+	def initialize(value)
+		debugContext "DsiEnumValue #{value}"
+		super
+	end
+end
+
+class DsiFunctionReferenceValue < DsiValue
+	# ~function pointer
+	def initialize(value)
+		debugContext "DsiFunctionReferenceValue"
+		super
+	end
+end
+
+class DsiArray < DsiValue
+	def initialize(value)
+		debugContext "DsiArray"
+		super
+	end
+end
+
+# DsiContextVariable ####################################################################################################
+
+class DsiContextVariable
+	def initialize(name, value)
+		debugContext "DsiContextVariable #{name}"
+		@name = name
+		@value = value
+	end
+end
+
+class DsiContextVariableList
+	def initialize(constants, variables)
+		debugContext "DsiContextVariableList"
+		@constants = constants
+		@variables = variables
+	end
+end
+
+class DsiVariable < DsiExpression
+	def initialize(name)
+		debugContext "DsiVariable #{name}"
+		super()
+		@name = name
+	end
+	def getName
+		@name
+	end
+end
+
+class DsiConstantVariable < DsiVariable
+	# Value is loaded from constant each time the context loads
+	def initialize(name, value)
+		debugContext "DsiConstantVariable #{name}"
+		super(name)
+		@value = value
+	end
+	def getValue
+		@value
+	end
+end
+

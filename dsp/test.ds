@@ -1,24 +1,25 @@
 
+
+
+switch("donuts")
+	case("fritters")
+		print("fritters will now print twice")
+	end
+	case("bacon")
+		print("fritters for the last time")
+	end
+	case(q)
+		print("This is the real answer.")
+	end
+end
+
+STOP_READING_HERE
+
 class one from two
 	func three(four)
 		five = 6
 	end
 end
-
-
-	switch("donuts")
-		case("fritters")
-			print("fritters will now print twice")
-		end
-		case("bacon")
-			print("fritters for the last time")
-		end
-		case(q)
-			print("This is the real answer.")
-		end
-	end
-
-	
 //----------------------------------------------------------------------------------------------------
 
 func main(params)

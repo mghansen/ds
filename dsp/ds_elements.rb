@@ -1,4 +1,4 @@
-$verboseElements = FALSE
+$verboseElements = false
 $indentationLevel = 2
 
 def dbgElements text
@@ -126,11 +126,12 @@ class DSDocument < DSObject
 			end
 		end
 		document = DSDocument.new(filename, statements)
+		document
 	end
 	
 	def format(indent)
 		output = ""
-		output << "DOCUMENT \"#{@name}\""
+		output << "DOCUMENT \"#{@name}\"\n"
 		@statements.each { |s| output << s.format(indent + 1) }
 		output << "\n"
 		output
@@ -141,11 +142,10 @@ end
 
 class DSName < DSObject
 	def initialize (name)
-		dbgElements "DSName.initialize " + name
+		#dbgElements "DSName.initialize " + name
 		super()
 		@name = name
 		consume 1
-		dbgElements "DSName.initialize DONE"
 	end
 	def getName
 		@name
@@ -164,7 +164,7 @@ end
 
 class DSQName < DSName
 	def initialize (name)
-		dbgElements "DSQName.initialize " + name
+		#dbgElements "DSQName.initialize " + name
 		super
 		@name = name
 	end
@@ -284,10 +284,10 @@ end
 # DSAssignment ####################################################################################################
 
 class DSAssignment < DSStatement
-	def initialize(lValue, operation, rValue)
+	def initialize(lValue, operator, rValue)
 		super()
 		@lValue = lValue
-		@operation = operation
+		@operator = operator
 		@rValue = rValue
 		consume (2 + @rValue.getConsumed)
 	end
@@ -295,7 +295,7 @@ class DSAssignment < DSStatement
 		@lValue
 	end
 	def getOperator
-		@operation
+		@operator
 	end
 	def getRValue
 		@rValue
@@ -311,7 +311,7 @@ class DSAssignment < DSStatement
 		element
 	end
 	def format(indent)
-		s = "#{prefix(indent)}ASSIGN #{@lValue} #{@operation}\n"
+		s = "#{prefix(indent)}ASSIGN #{@lValue} #{@operator}\n"
 		s << @rValue.format(indent + 1)
 		s << "#{prefix(indent)}END ASSIGN\n"
 		s
@@ -447,7 +447,7 @@ class DSClassDeclaration < DSDeclaration
 	def getBaseClass
 		@baseClass
 	end
-	def getBlock
+	def getStatements
 		@block.getStatements
 	end
 	
@@ -576,7 +576,7 @@ class DSExpression < DSStatement
 				element = invalid()
 			end
 		elsif DSObject.isNumber(tokens[0])
-			# dbgElements "EXPRESSION NUMBER"
+			dbgElements "EXPRESSION NUMBER"
 			element = DSNumber.parse(tokens)
 		elsif /^\"/ =~ tokens[0]
 			# dbgElements "EXPRESSION STRING"
@@ -606,6 +606,7 @@ class DSExpression < DSStatement
 			# dbgElements "EXPRESSION OPERATION"
 			element = DSOperation.parse(tokens, element)
 		end
+		
 		element
 	end
 end
@@ -615,6 +616,10 @@ end
 class DSConstant < DSExpression
 	def initialize
 		super
+		@value = nil
+	end
+	def getValue
+		@value
 	end
 	def self.parse tokens
 		super
@@ -685,6 +690,18 @@ class DSOperation < DSExpression
 		@operator = operator
 		@secondExpression = secondExpression
 		consume @firstExpression.getConsumed + 1 + @secondExpression.getConsumed
+	end
+	
+	def getFirstExpression
+		@firstExpression
+	end
+	
+	def getOperator
+		@operator
+	end
+	
+	def getSecondExpression
+		@secondExpression
 	end
 	
 	def self.parse(tokens, firstExpression)
@@ -912,6 +929,12 @@ class DSCondition < DSObject
 	def getConditionType
 		@conditionType
 	end
+	def getExpression
+		@expression
+	end
+	def getStatements
+		block.getStatements
+	end
 	def self.parse tokens
 		dbgElementsTokens "DSCondition.parse", tokens
 		isElse = tokens[0].eql?("else")
@@ -960,6 +983,12 @@ class DSFor < DSControl
 		@block = block
 		# consume in child class
 	end
+	def getVariant
+		@variant
+	end
+	def getStatements
+		@block.getStatements
+	end
 	def self.parse tokens
 		dbgElementsTokens "DSFor.parse", tokens
 		if tokens[0].eql?("for") and DSObject.isName(tokens[1])
@@ -984,6 +1013,9 @@ class DSForIn < DSFor
 		super(variant, block)
 		@set = set
 		consume 4 + block.getConsumed()
+	end
+	def getSet
+		@set
 	end
 	def self.parse tokens
 		dbgElementsTokens "DSForIn.parse", tokens
@@ -1013,6 +1045,12 @@ class DSForFrom < DSFor
 		@startExpression = startExpression
 		@endExpression = endExpression
 		consume 3 + startExpression.getConsumed() + 1 + endExpression.getConsumed() + block.getConsumed()
+	end
+	def getStartExpression
+		@startExpression
+	end
+	def getEndExpression
+		@endExpression
 	end
 	def self.parse tokens
 		dbgElementsTokens "DSForFrom.parse", tokens
@@ -1186,7 +1224,7 @@ class DSCase < DSObject
 		super()
 		@expression = expression
 		@block = block
-		consume 1 + (isDefault ? 1 : 2 + expression.getConsumed) + block.getConsumed
+		consume 1 + (isDefault ? 1 : expression.getConsumed) + block.getConsumed
 	end
 	def self.parse tokens
 		dbgElementsTokens "DSCase.parse", tokens
@@ -1198,11 +1236,11 @@ class DSCase < DSObject
 				isDefault = true
 				consumed += 1
 				expression = DSExpression.parse( [ "true" ] )
-			elsif tokens[1].eql?("(")
-				consumed += 1
+			else
+				#consumed += 1
 				expression = DSExpression.parse(tokens[consumed..-1])
-				if expression.isValid and tokens[consumed + expression.getConsumed].eql?(")")
-					consumed += expression.getConsumed + 1
+				if expression.isValid
+					consumed += expression.getConsumed
 				else
 					expression = nil
 				end
