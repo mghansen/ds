@@ -1,5 +1,5 @@
 require 'set'
-require_relative "ds_state"
+#require_relative "ds_state"
 
 $verboseTemplate = true
 
@@ -32,20 +32,32 @@ end
 
 class DsiGlobalTemplate < DsiStateTemplate
 	# Allowed in the global template are use, variable declaration, enum declaration, class declaration, function declaration
-	def initialize
+	def initialize(vars, enums, classTemplates, functionTemplates)
 		debugTemplate "DsiGlobalTemplate"
 		super("0_GLOBAL_CONTEXT")
-		@uses = Set.new
-		@vars = Set.new
+		@vars = Array.new
 		@enums = Array.new
-		@classes = Array.new
-		@functionTemplates = Array.new
+		@classTemplates = classTemplates
+		@functionTemplates = functionTemplates
+	end
+	
+	def getVars
+		@vars
 	end
 	
 	def getClassTemplates
 		@classes
 	end
 	
+	def getClassTemplate(name)
+		@classTemplates.each do |c|
+			if f.getName.eql?(name)
+				return c
+			end
+		end
+		return nil
+	end
+
 	def getFunctionTemplates
 		@functionTemplates
 	end
@@ -58,43 +70,7 @@ class DsiGlobalTemplate < DsiStateTemplate
 		end
 		return nil
 	end
-		
-
-	def addUse(name)
-		@uses.add(name)
-	end
 	
-	def addVar(name)
-		@vars.add(name)
-	end
-	
-	def addEnum(name, values)
-		enum = DsiEnum.new(name, values)
-		@enums.each do |e|
-			if e.getName.eql?(name)
-				return
-			end
-		end
-		@enums.add(enum)
-	end
-	
-	def addClass(classTemplate)
-		@classes.each do |c|
-			if c.getName.eql?(classTemplate.getName)
-				return
-			end
-		end
-		@classes.push(classTemplate)
-	end
-
-	def addFunction(functionTemplate)
-		@functionTemplates.each do |f|
-			if f.getName.eql?(functionTemplate.getName)
-				return
-			end
-		end
-		@functionTemplates.push(functionTemplate)
-	end
 end
 
 # DsiClassTemplate ####################################################################################################
@@ -136,10 +112,15 @@ class DsiFunctionTemplate < DsiStateTemplate
 		@paramNames = paramNames
 		@vars = vars
 		@instructions = instructions
+		@className = nil
 	end
 
 	def getName
 		@name
+	end
+	
+	def setClassName(className)
+		@className = className
 	end
 	
 	def setInstructions(instructions)
@@ -147,22 +128,21 @@ class DsiFunctionTemplate < DsiStateTemplate
 	end
 end
 
+# DsiVariableName ####################################################################################################
 
-# DsiVariable ####################################################################################################
-
-class DsiTemplateVariable
-	def initialize(name, value)
-		debugTemplate "DsiTemplateVariable #{name}"
+class DsiVariableNanme
+	def initialize(name)
+		debugTemplate "DsiVariableNanme #{name}"
 		@name = name
+		@value = nil
+	end
+	def setValue(value)
 		@value = value
 	end
-end
-
-class DsiTemplateVariableList
-	def initialize(constants, variables)
-		debugTemplate "DsiTemplateVariableList"
-		@constants = constants
-		@variables = variables
+	def getName
+		@name
+	end
+	def getValue
+		@value
 	end
 end
-

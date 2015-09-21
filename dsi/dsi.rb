@@ -30,7 +30,7 @@ Dsi classes are getting a little out of hand. Here's the hierarchy (9/20):
 
 ds_runtime
 
-	class DsiInstruction
+	class DsiInstruction (DsiInstruction's evaluate() method will be called as code runs)
 		class DsiAssignment < DsiInstruction
 			@lValue = lValue
 			@operator = operator
@@ -70,7 +70,9 @@ ds_runtime
 			class DsiFunctionCall < DsiExpression
 				@name = name
 				@paramExpressions = paramExpressions
-			class DsiValue < DsiExpression
+			class DsiValue < DsiExpression 
+					(Value holds the actual value. The template will create a list of these.)
+					(Constants will be created as normal values in the global context on start.)
 				@value = value
 				class DsiNumberValue < DsiValue
 				class DsiStringValue < DsiValue
@@ -78,7 +80,7 @@ ds_runtime
 				class DsiEnumValue < DsiValue
 				class DsiFunctionReferenceValue < DsiValue
 				class DsiClassValue < DsiValue
-			class DsiVariable < DsiExpression
+			class DsiVariable < DsiExpression (Doesn't store the value. It's just a reference to the name.)
 				@name = name
 				class DsiConstantVariable < DsiVariable
 					@value = value

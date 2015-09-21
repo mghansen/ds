@@ -196,6 +196,19 @@ end
 #	end
 #end
 
+class DsiNameValue
+	def initialize(name, value)
+		@name
+		@value
+	end
+	def getName
+		@name
+	end
+	def getValue
+		@value
+	end
+end
+
 class DsiClassValue < DsiValue
 	def initialize(value)
 		debugRuntime "DsiClassValue"
@@ -204,7 +217,7 @@ end
 
 class DsiVariable < DsiExpression
 	def initialize(name)
-		debugTemplate "DsiVariable #{name}"
+		debugRuntime "DsiVariable #{name}"
 		super()
 		@name = name
 	end
@@ -216,7 +229,7 @@ end
 class DsiConstantVariable < DsiVariable
 	# Value is loaded from constant each time the template loads
 	def initialize(name, value)
-		debugTemplate "DsiConstantVariable #{name}"
+		debugRuntime "DsiConstantVariable #{name}"
 		super(name)
 		@value = value
 	end

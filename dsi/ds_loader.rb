@@ -14,10 +14,12 @@ end
 # LoaderState ####################################################################################################
 
 class LoaderState
-	def initialize
+	def initialize(stateName, parent)
 		@@nextId = 1
 		@variables = Array.new
 		@constants = Array.new
+		@parent = parent
+		@stateName = stateName
 	end
 	
 	def getVariables
@@ -25,6 +27,10 @@ class LoaderState
 	end
 	def getConstants
 		@constants
+	end
+	
+	def getNewChildState(name)
+		state = LoaderState.new(name, self)
 	end
 	
 	def addVariable(name)
@@ -36,7 +42,7 @@ class LoaderState
 			end
 		end
 		if not found
-			var = DsiVariable.new(name)
+			var = DsiVariableName.new(name) # TODO: consistently add vars and constants
 			@variables.push(var)
 		end
 	end
@@ -87,51 +93,120 @@ class Loader
 	def loadGlobalTemplate(statements)
 		# Allowed in the global template are use, variable declaration, enum declaration, class declaration, function declaration
 		# TODO: Move setup logic out of the template into this class
+		# TODO: Create state here, substates for classes and functions
+		# TODO: Global assignments
 		
 		useDirectives = Array.new #
-		
-		template = DsiGlobalTemplate.new
+		vars = Array.new # Used to be Set
+		enums = Array.new
+		classTemplates = Array.new
+		functionTemplates = Array.new
+		globalState = LoaderState.new("GLOBAL", nil)
+
 		statements.each do |s|
 			if s.is_a?(DspUse)
 				debugLoader "Global template sees Use"
 				@useDirectives.push(name)
 				
+			# TODO: Separate out decl and assignment. The name confusion is crashing at runtime
 			elsif s.is_a?(DspVariableDeclaration)
 				debugLoader "Global template sees Var"
-				name = new DsiVar(s.getName) # TODO implement
-				template.addVar(name)
-				
+				found = false
+				vars.each do |v|
+					if v.getName.eql?(s.getName)
+						found = true
+						break
+					end
+				end
+				if not found
+					var = DsVariable.new(s.getName)
+					vars.add(var)
+				end
+			
+			elsif s.is_a?(DspAssignment) and s.getRValue.is_a?(DspConstant)
+				debugLoader "Global template sees Assignment"
+				found = false
+				vars.each do |v|
+					if v.getName.eql?(s.getName)
+						found = true
+						break
+					end
+				end
+				if not found
+					if s.is_a?(DspAssignment)
+						var = DsVariable.new(s.getName)
+						var.setValue(s.getValue)
+					else
+						var = DsVariable.new(s.getName)
+					end
+					vars.add(var)
+				end
+			
 			elsif s.is_a?(DspEnumDeclaration)
 				debugLoader "Global template sees Enum"
 				name = s.getName
 				values = s.getValues
-				template.addEnum(name, values)
+				found = false
+				enums.each do |e|
+					if e.getName.eql?(name)
+						found = true
+						break
+					end
+				end
+				if not fount
+					enum = DsiEnum.new(name, values)
+					enums.push(enum)
+				end
 				
 			elsif s.is_a?(DspClassDeclaration)
 				debugLoader "Global template sees Class"
-				item = loadClassTemplate(s)
-				if item.isValid
-					template.addClass(item)
+				found = false
+				classTemplates.each do |c|
+					if c.getName.eql?(s.getName)
+						found = true
+						break
+					end
+				end
+				if not found
+					item = loadClassTemplate(s, globalState)
+					if item.isValid
+						classTemplates.push(item)
+					end
 				end
 				
-			elsif s.is_a?(DspClassDeclaration)
+			elsif s.is_a?(DspFunctionDeclaration)
 				debugLoader "Global template sees Function"
-				item = loadFunctionTemplate(s)
-				if item.isValid
-					template.addFunction(item)
+				found = false
+				functionTemplates.each do |f|
+					if f.getName.eql?(s.getName)
+						found = true
+						break;
+					end
+				end
+				if not found
+					item = loadFunctionTemplate(s, globalState, nil)
+					if item.isValid
+						functionTemplates.push(item)
+					end
 				end
 			end
 		end
+		
+		# Add constants and gloval vars
+		
+		template = DsiGlobalTemplate.new(vars, enums, classTemplates, functionTemplates)
 		template
 	end
 	
-	def loadClassTemplate(declaration)
+	def loadClassTemplate(declaration, globalState)
 		# Allowed in a class are variable declaration, function declaration
 		debugLoader "loadClassTemplate"
 		name = declaration.getName
 		baseClass = declaration.getBaseClass
-		vars = Set.new
+		vars = Array.new
 		functionTemplates = Array.new
+		
+		classState = globalState.getNewChildState(name)
 		
 		declaration.getStatements.each do |s|
 			debugLoader "Class template sees Var"
@@ -139,8 +214,8 @@ class Loader
 				vars.push(s.getName)
 				
 			elsif s.is_a?(DspFunctionDeclaration)
-			debugLoader "Class template sees Function"
-				item = loadFunctionTemplate(s)
+				debugLoader "Class template sees Function"
+				item = loadFunctionTemplate(s, globalState, classState)
 				if item.isValid
 					functionTemplates.push(item)
 				end
@@ -149,10 +224,9 @@ class Loader
 		
 		template = DsiClassTemplate.new(name, baseClass, vars, functionTemplates)
 		template
-		
 	end
 	
-	def loadFunctionTemplate(declaration)
+	def loadFunctionTemplate(declaration, globalState, classState)
 		# Allowed in a function are variable declarations and instructions
 		debugLoader "loadClassTemplate"
 		name = declaration.getName
@@ -162,10 +236,13 @@ class Loader
 			#          var declarations (which modify the template),
 			#          control (if, for, while, do, switch, break, continue, return)
 			
-		loaderState = LoaderState.new
+		loaderState = LoaderState.new(name, (classState == nil) ? globalState : classState)
 			
 		instructions = processStatements(declaration.getStatements, loaderState)
-		template = DsiFunctionTemplate.new(name, params, loaderState.getVariables, instructions)
+		template = DsiFunctionTemplate.new(name, params, loaderState.getVariables, instructions)##
+		if not classState == nil
+			#template.setClassName(classState...
+		end
 		template
 	end
 
@@ -310,11 +387,11 @@ class Loader
 				varName = nil
 			end
 			if not varName == nil
-				item = DsiVariable.new(varName)
+				item = DsiVariableNanme.new(varName)
 			end
 			
 		elsif expression.is_a?(DspQName)
-			item = DsiVariable.new(expression.getName)
+			item = DsiVariableNanme.new(expression.getName)
 
 		else
 			item = nil
@@ -322,9 +399,7 @@ class Loader
 		
 		item
 	end
-	
 end
-
 
 #		# What has expressions?
 #		DSAssignment.@rValue
