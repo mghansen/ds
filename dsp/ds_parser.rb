@@ -33,7 +33,7 @@ class Parser
 	def parseAll
 		tokenList = @tokenizer.getTokenList()
 		tokens = tokenList.getFrom(0)
-		@document = DSDocument.parse(tokens, @input_filename)
+		@document = DspDocument.parse(tokens, @input_filename)
 		if @document.isValid
 			indent = 0
 			dbgParser "#{@document.format(indent)}"

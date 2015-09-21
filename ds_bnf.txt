@@ -52,10 +52,11 @@
 					<logical_operator> ::= "+" | "-" | "*" | "/" | "."
 
 			<function_call> ::= <function_message_name> ( <params> )
-				<function_message_name> ::= <call_name> | <built_in_function>
+				<function_message_name> ::= <call_name> | <reserved_function>
 					<call_name> ::= <qname>
-				<built_in_function> ::= <return> | break | continue
-					<return> ::= return <expression>
+				<reserved_function> ::= <reserved_function_without_params> | <reserved_function_with_params>
+					<reserved_function_without_params> ::= break | continue
+					<reserved_function_with_params> ::= return <expression>
 				<params> ::= <expression> { , <expression> }
 			
 		<control> ::= <if> | <for_in> | <for_from> | <while> | <do> | <switch>
@@ -80,3 +81,5 @@
 		<comment> ::= <comment_single_line> | <comment_multi_line>"
 			<comment_single_line> ::= "//" ... "\n"
 			<comment_multi_line> ::= "/*" ... "*/"
+
+// Reserved classes: Array, String

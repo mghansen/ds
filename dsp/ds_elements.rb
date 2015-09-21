@@ -26,9 +26,9 @@ def prefix(indent)
 	s
 end
 
-# DSObject ####################################################################################################
+# DspObject ####################################################################################################
 
-class DSObject
+class DspObject
 	@@keywords = [ 
 		"use", "new", "array", "of", "enum", "end", "class", "from", "func", "true", "false", "return", 
 		"break", "continue", "if", "else", "elsif", "for", "in", "do", "from", "to", "while", "switch", "case" ]
@@ -56,7 +56,7 @@ class DSObject
 	end
 	
 	def self.parse tokens 
-		dbgElements "Default DSObject parse"
+		dbgElements "Default DspObject parse"
 		invalid()
 	end
 	
@@ -64,7 +64,7 @@ class DSObject
 	end
 	
 	def self.invalid
-		ret = DSObject.new
+		ret = DspObject.new
 		ret.invalidate
 		ret
 	end
@@ -91,9 +91,9 @@ class DSObject
 		
 end
 
-# DSDocument ####################################################################################################
+# DspDocument ####################################################################################################
 
-class DSDocument < DSObject
+class DspDocument < DspObject
 	def initialize(name, statements)
 		super()
 		@name = name
@@ -109,23 +109,23 @@ class DSDocument < DSObject
 	end
 	
 	def self.parse tokens, filename
-		dbgElementsTokens "DSDocument.parse", tokens
+		dbgElementsTokens "DspDocument.parse", tokens
 		statements = Array.new
 		consumed = 0
 		while (consumed < tokens.size - 1) do
-			element = DSStatement.parse(tokens[consumed..-1])
+			element = DspStatement.parse(tokens[consumed..-1])
 			if element == nil
-				dbgElementsTokens "DSDocument.parse", tokens
+				dbgElementsTokens "DspDocument.parse", tokens
 				return
 			elsif !element.isValid
-				dbgElementsTokens "DSDocument.parse", tokens
+				dbgElementsTokens "DspDocument.parse", tokens
 				return
 			else
 				statements.push(element)
 				consumed += element.getConsumed
 			end
 		end
-		document = DSDocument.new(filename, statements)
+		document = DspDocument.new(filename, statements)
 		document
 	end
 	
@@ -140,9 +140,9 @@ end
 
 # Names ####################################################################################################
 
-class DSName < DSObject
+class DspName < DspObject
 	def initialize (name)
-		#dbgElements "DSName.initialize " + name
+		#dbgElements "DspName.initialize " + name
 		super()
 		@name = name
 		consume 1
@@ -151,8 +151,8 @@ class DSName < DSObject
 		@name
 	end
 	def self.parse tokens
-		dbgElementsTokens "DSName.parse", tokens
-		element = DSObject.isName(tokens[0]) ? DSName.new(tokens[0]) : invalid()
+		dbgElementsTokens "DspName.parse", tokens
+		element = DspObject.isName(tokens[0]) ? DspName.new(tokens[0]) : invalid()
 		element
 	end
 	def format(indent)
@@ -162,9 +162,9 @@ class DSName < DSObject
 	
 end
 
-class DSQName < DSName
+class DspQName < DspName
 	def initialize (name)
-		#dbgElements "DSQName.initialize " + name
+		#dbgElements "DspQName.initialize " + name
 		super
 		@name = name
 	end
@@ -172,8 +172,8 @@ class DSQName < DSName
 		@name
 	end
 	def self.parse tokens
-		dbgElementsTokens "DSQName.parse", tokens
-		element = DSObject.isQName(tokens[0]) ? DSQName.new(tokens[0]) : invalid()
+		dbgElementsTokens "DspQName.parse", tokens
+		element = DspObject.isQName(tokens[0]) ? DspQName.new(tokens[0]) : invalid()
 		element
 	end
 	def format(indent)
@@ -181,25 +181,25 @@ class DSQName < DSName
 	end
 end
 
-# DSStatement ####################################################################################################
+# DspStatement ####################################################################################################
 
-class DSStatement < DSObject
+class DspStatement < DspObject
 	def initialize
 		super
 	end
 	def self.parse tokens	
-		dbgElementsTokens "DSStatement.parse", tokens
+		dbgElementsTokens "DspStatement.parse", tokens
 		
 		if tokens[0].eql?("use")
-			element = DSUse.parse(tokens)
+			element = DspUse.parse(tokens)
 		elsif ["enum", "class", "func", "var" ].include?(tokens[0])
-			element = DSDeclaration.parse(tokens)
+			element = DspDeclaration.parse(tokens)
 		elsif ["if", "for", "while", "do", "switch" ].include?(tokens[0])
-			element = DSControl.parse tokens
-		elsif [ "=", "+=", "-=", "*=", "/=" ].include?(tokens[1]) and DSObject.isQName(tokens[0])
-			element = DSAssignment.parse(tokens)
+			element = DspControl.parse tokens
+		elsif [ "=", "+=", "-=", "*=", "/=" ].include?(tokens[1]) and DspObject.isQName(tokens[0])
+			element = DspAssignment.parse(tokens)
 		else
-			element = DSExpression.parse(tokens)
+			element = DspExpression.parse(tokens)
 		end
 		element
 	end
@@ -209,9 +209,9 @@ class DSStatement < DSObject
 	end
 end
 
-# DSBlock ####################################################################################################
+# DspBlock ####################################################################################################
 
-class DSBlock < DSObject
+class DspBlock < DspObject
 	def initialize(statements, finalizingToken)
 		super()
 		@statements = statements
@@ -226,8 +226,8 @@ class DSBlock < DSObject
 	end
 	
 	def self.parse(tokens, finalizingTokens)
-		#puts "DSBlock #{tokens.size} tokens"
-		dbgElementsTokens "DSBlock.parse", tokens
+		#puts "DspBlock #{tokens.size} tokens"
+		dbgElementsTokens "DspBlock.parse", tokens
 		statements = Array.new
 		finalizingToken = ""
 		i = 0
@@ -238,12 +238,12 @@ class DSBlock < DSObject
 					finalizingToken = tokens[i]
 					break
 				else
-					statement = DSStatement.parse(tokens[i..-1])
+					statement = DspStatement.parse(tokens[i..-1])
 					statements.push(statement)
 					i += statement.getConsumed()
 				end
 			end
-			element = DSBlock.new(statements, finalizingToken)
+			element = DspBlock.new(statements, finalizingToken)
 		else
 			element = invalid()
 		end
@@ -258,9 +258,9 @@ class DSBlock < DSObject
 	end
 end
 
-# DSUse ####################################################################################################
+# DspUse ####################################################################################################
 
-class DSUse < DSStatement
+class DspUse < DspStatement
 	def initialize (filename)
 		super()
 		@filename = filename
@@ -270,9 +270,9 @@ class DSUse < DSStatement
 		@filename
 	end
 	def self.parse tokens
-		dbgElementsTokens "DSUse.parse", tokens
+		dbgElementsTokens "DspUse.parse", tokens
 		if tokens[0].eql? "use" and tokens.size > 1
-			element = DSUse.new(tokens[1])
+			element = DspUse.new(tokens[1])
 		end
 		element
 	end
@@ -281,9 +281,9 @@ class DSUse < DSStatement
 	end
 end
 
-# DSAssignment ####################################################################################################
+# DspAssignment ####################################################################################################
 
-class DSAssignment < DSStatement
+class DspAssignment < DspStatement
 	def initialize(lValue, operator, rValue)
 		super()
 		@lValue = lValue
@@ -301,10 +301,10 @@ class DSAssignment < DSStatement
 		@rValue
 	end
 	def self.parse tokens
-		dbgElementsTokens "DSAssignment.parse", tokens
-		rValue = DSExpression.parse(tokens[2..-1])
+		dbgElementsTokens "DspAssignment.parse", tokens
+		rValue = DspExpression.parse(tokens[2..-1])
 		if rValue.isValid
-			element = DSAssignment.new(tokens[0], tokens[1], rValue)
+			element = DspAssignment.new(tokens[0], tokens[1], rValue)
 		else
 			element = invalid()
 		end
@@ -318,23 +318,23 @@ class DSAssignment < DSStatement
 	end
 end
 
-# DSDeclaration ####################################################################################################
+# DspDeclaration ####################################################################################################
 
-class DSDeclaration < DSStatement
+class DspDeclaration < DspStatement
 	def initialize
 		super
 	end
 	def self.parse tokens
-		dbgElementsTokens "DSDeclaration.parse", tokens
+		dbgElementsTokens "DspDeclaration.parse", tokens
 		element = invalid()
-		if tokens[0].eql?("enum") and DSObject.isName(tokens[1]) and DSObject.isName(tokens[2])
-			element = DSEnumDeclaration.parse(tokens)
-		elsif tokens[0].eql?("class") and DSObject.isName(tokens[1]) and DSObject.isName(tokens[2]) # tokens[2] might be "from"
-			element = DSClassDeclaration.parse(tokens)
-		elsif tokens[0].eql?("func") and DSObject.isName(tokens[1]) and tokens[2].eql?("(")
-			element = DSFunctionDeclaration.parse(tokens)
-		elsif tokens[0].eql?("var") and DSObject.isName(tokens[1])
-			element = DSVariableDeclaration.parse(tokens)
+		if tokens[0].eql?("enum") and DspObject.isName(tokens[1]) and DspObject.isName(tokens[2])
+			element = DspEnumDeclaration.parse(tokens)
+		elsif tokens[0].eql?("class") and DspObject.isName(tokens[1]) and DspObject.isName(tokens[2]) # tokens[2] might be "from"
+			element = DspClassDeclaration.parse(tokens)
+		elsif tokens[0].eql?("func") and DspObject.isName(tokens[1]) and tokens[2].eql?("(")
+			element = DspFunctionDeclaration.parse(tokens)
+		elsif tokens[0].eql?("var") and DspObject.isName(tokens[1])
+			element = DspVariableDeclaration.parse(tokens)
 		else
 			element = invalid()
 		end
@@ -342,9 +342,9 @@ class DSDeclaration < DSStatement
 	end
 end
 
-# DSVariableDeclaration ####################################################################################################
+# DspVariableDeclaration ####################################################################################################
 
-class DSVariableDeclaration < DSDeclaration
+class DspVariableDeclaration < DspDeclaration
 	def initialize(name)
 		@name = name
 		consume 2
@@ -353,9 +353,9 @@ class DSVariableDeclaration < DSDeclaration
 		@name
 	end
 	def self.parse tokens
-		dbgElementsTokens "DSDeclaration.parse", tokens
-		if tokens[0].eql?("var") and DSObject.isName(tokens[1])
-			element = DSVariableDeclaration.new(tokens[1])
+		dbgElementsTokens "DspDeclaration.parse", tokens
+		if tokens[0].eql?("var") and DspObject.isName(tokens[1])
+			element = DspVariableDeclaration.new(tokens[1])
 		else
 			element = invalid()
 		end
@@ -366,9 +366,9 @@ class DSVariableDeclaration < DSDeclaration
 	end
 end
 
-# DSEnumDeclaration ####################################################################################################
+# DspEnumDeclaration ####################################################################################################
 
-class DSEnumDeclaration < DSDeclaration
+class DspEnumDeclaration < DspDeclaration
 	def initialize(name, values)
 		super()
 		@name = name
@@ -384,8 +384,8 @@ class DSEnumDeclaration < DSDeclaration
 	end
 
 	def self.parse tokens
-		dbgElementsTokens "DSEnumDeclaration.parse", tokens
-		if tokens[0].eql?("enum") and DSObject.isName(tokens[1])
+		dbgElementsTokens "DspEnumDeclaration.parse", tokens
+		if tokens[0].eql?("enum") and DspObject.isName(tokens[1])
 			name = tokens[1]
 			values = Array.new
 			consumed = 1
@@ -393,7 +393,7 @@ class DSEnumDeclaration < DSDeclaration
 			valid = true
 			while not tokens[consumed].eql?("end") do
 				if (first or tokens[consumed].eql?(","))
-					if DSObject.isName(tokens[consumed + 1])
+					if DspObject.isName(tokens[consumed + 1])
 						values.push(tokens[consumed + 1])
 						consumed += 2
 					else
@@ -404,7 +404,7 @@ class DSEnumDeclaration < DSDeclaration
 				first = false
 			end
 			if(valid)
-				element = DSEnumDeclaration.new(name, values)
+				element = DspEnumDeclaration.new(name, values)
 			else
 				element = invalid()
 			end
@@ -430,9 +430,9 @@ class DSEnumDeclaration < DSDeclaration
 	end
 end
 
-# DSClassDeclaration ####################################################################################################
+# DspClassDeclaration ####################################################################################################
 
-class DSClassDeclaration < DSDeclaration
+class DspClassDeclaration < DspDeclaration
 	def initialize(name, baseClass, block)
 		super()
 		@name = name
@@ -452,19 +452,19 @@ class DSClassDeclaration < DSDeclaration
 	end
 	
 	def self.parse tokens
-		dbgElements "DSClassDeclaration.parse"
-		if tokens[0].eql?("class") and DSObject.isName(tokens[1])
+		dbgElements "DspClassDeclaration.parse"
+		if tokens[0].eql?("class") and DspObject.isName(tokens[1])
 			name = tokens[1]
 			consumed = 2
-			if tokens[consumed].eql?("from") and DSObject.isName(tokens[consumed + 1])
+			if tokens[consumed].eql?("from") and DspObject.isName(tokens[consumed + 1])
 				from = tokens[consumed + 1]
 				consumed += 2
 			else
 				from = ""
 			end
-			block = DSBlock.parse(tokens[consumed..-1], [ "end" ])
+			block = DspBlock.parse(tokens[consumed..-1], [ "end" ])
 			if block.isValid
-				element = DSClassDeclaration.new(name, from, block)
+				element = DspClassDeclaration.new(name, from, block)
 			else
 				element = invalid()
 			end
@@ -480,9 +480,9 @@ class DSClassDeclaration < DSDeclaration
 	end
 end
 
-# DSFunctionDeclaration ####################################################################################################
+# DspFunctionDeclaration ####################################################################################################
 
-class DSFunctionDeclaration < DSDeclaration
+class DspFunctionDeclaration < DspDeclaration
 	
 	def initialize(name, params, block)
 		super()
@@ -505,8 +505,8 @@ class DSFunctionDeclaration < DSDeclaration
 	end
 	
 	def self.parse tokens
-		dbgElementsTokens "DSFunctionDeclaration.parse", tokens
-		if(tokens[0].eql?("func") and DSObject.isName(tokens[1]) and tokens[2].eql?("("))
+		dbgElementsTokens "DspFunctionDeclaration.parse", tokens
+		if(tokens[0].eql?("func") and DspObject.isName(tokens[1]) and tokens[2].eql?("("))
 			name = tokens[1]
 			params = Array.new
 			consumed = 3
@@ -515,25 +515,25 @@ class DSFunctionDeclaration < DSDeclaration
 				consumed += 1
 				# puts "NO PARAMS consumed=#{consumed}"
 			else
-				# dbgElementsTokens "DSFunctionDeclaration.parse params start", tokens[consumed..-1]
+				# dbgElementsTokens "DspFunctionDeclaration.parse params start", tokens[consumed..-1]
 				while not tokens[consumed - 1].eql?(")") do
-					# dbgElementsTokens "DSFunctionDeclaration.parse params", tokens[consumed..-1]
-					if DSObject.isName(tokens[consumed]) and ([ ",", ")" ].include?(tokens[consumed + 1]))
+					# dbgElementsTokens "DspFunctionDeclaration.parse params", tokens[consumed..-1]
+					if DspObject.isName(tokens[consumed]) and ([ ",", ")" ].include?(tokens[consumed + 1]))
 						params.push(tokens[consumed])
 						# puts "PARAMETER #{tokens[consumed]}"
 						consumed += 2
 					else
-						puts "DSFunctionDeclaration.parse error reading parameters"
+						puts "DspFunctionDeclaration.parse error reading parameters"
 						break
 					end
 				end
 				# puts "END LOOP consumed=#{consumed}"
 			end
 
-			# dbgElementsTokens "DSFunctionDeclaration.parse starting block", tokens[consumed..-1]
-			block = DSBlock.parse(tokens[consumed..-1], [ "end" ])
+			# dbgElementsTokens "DspFunctionDeclaration.parse starting block", tokens[consumed..-1]
+			block = DspBlock.parse(tokens[consumed..-1], [ "end" ])
 			if block.isValid
-				element = DSFunctionDeclaration.new(name, params, block)
+				element = DspFunctionDeclaration.new(name, params, block)
 			else
 				element = invalid()
 			end
@@ -558,62 +558,62 @@ class DSFunctionDeclaration < DSDeclaration
 	end
 end
 
-# DSExpression ####################################################################################################
+# DspExpression ####################################################################################################
 
-class DSExpression < DSStatement
+class DspExpression < DspStatement
 	def initialize
 		super
 	end
 	def self.parse tokens
-		dbgElementsTokens "DSExpression.parse", tokens
+		dbgElementsTokens "DspExpression.parse", tokens
 		
 		if tokens[0].eql?("(")
 			# dbgElements "EXPRESSION GROUPED EXPRESSION"
-			element = DSExpression.parse(tokens[1..-1])
+			element = DspExpression.parse(tokens[1..-1])
 			if tokens[element.getConsumed + 1].eql?(")")
 				element.consume(element.getConsumed + 2)
 			else
 				element = invalid()
 			end
-		elsif DSObject.isNumber(tokens[0])
+		elsif DspObject.isNumber(tokens[0])
 			dbgElements "EXPRESSION NUMBER"
-			element = DSNumber.parse(tokens)
+			element = DspNumber.parse(tokens)
 		elsif /^\"/ =~ tokens[0]
 			# dbgElements "EXPRESSION STRING"
-			element = DSString.parse(tokens)	
+			element = DspString.parse(tokens)	
 		elsif /^true|false$/ =~ tokens[0]
 			# dbgElements "EXPRESSION BOOL"
-			element = DSBool.parse(tokens)
+			element = DspBool.parse(tokens)
 		elsif tokens[0].eql?("nil")
 			dbgElements "NIL"
 		elsif [ "return", "break", "continue" ].include?(tokens[0])
-			# dbgElements "BUILT IN FUNCTION CALL"
-			element = DSBuiltInFunction.parse(tokens)
-		elsif DSObject.isQName(tokens[0]) and not @@keywords.include?(tokens[0])
+			# dbgElements "RESERVED FUNCTION CALL"
+			element = DspReservedFunction.parse(tokens)
+		elsif DspObject.isQName(tokens[0]) and not @@keywords.include?(tokens[0])
 			if tokens[1].eql?("(")
 				# dbgElements "EXPRESSION FUNCTION CALL"
-				element = DSFunctionCall.parse(tokens)
+				element = DspFunctionCall.parse(tokens)
 			else
 	 			# dbgElements "EXPRESSION VARIABLE NAME"
-				element = DSQName.parse(tokens)
+				element = DspQName.parse(tokens)
 			end
 		else
 			# dbgElements "EXPRESSION OTHER"
 			element = invalid()
 		end
 		
-		if element.isValid and DSOperation.isOperator(tokens[element.getConsumed])
+		if element.isValid and DspOperation.isOperator(tokens[element.getConsumed])
 			# dbgElements "EXPRESSION OPERATION"
-			element = DSOperation.parse(tokens, element)
+			element = DspOperation.parse(tokens, element)
 		end
 		
 		element
 	end
 end
 
-# DSConstant ####################################################################################################
+# DspConstant ####################################################################################################
 
-class DSConstant < DSExpression
+class DspConstant < DspExpression
 	def initialize
 		super
 		@value = nil
@@ -629,7 +629,7 @@ class DSConstant < DSExpression
 	end
 end
 
-class DSNumber < DSConstant
+class DspNumber < DspConstant
 	def initialize(value)
 		super()
 		if value.include? '.'
@@ -640,8 +640,8 @@ class DSNumber < DSConstant
 		consume 1
 	end
 	def self.parse tokens
-		dbgElements "DSNumber.parse"
-		element = DSNumber.new(tokens[0])
+		dbgElements "DspNumber.parse"
+		element = DspNumber.new(tokens[0])
 		element
 	end
 	def format(indent)
@@ -649,14 +649,14 @@ class DSNumber < DSConstant
 	end
 end
 
-class DSString < DSConstant
+class DspString < DspConstant
 	def initialize(value)
 		super()
 		@value = value
 		consume 1
 	end
 	def self.parse tokens
-		element = DSString.new(tokens[0])
+		element = DspString.new(tokens[0])
 		element
 	end
 	def format(indent)
@@ -664,23 +664,23 @@ class DSString < DSConstant
 	end
 end
 
-class DSBool < DSConstant
+class DspBool < DspConstant
 	def initialize(value)
 		super()
 		@value = value
 		consume 1
 	end
 	def self.parse tokens
-		element = DSBool.new(tokens[0].eql?("true"))
+		element = DspBool.new(tokens[0].eql?("true"))
 	end
 	def format(indent)
 		"#{prefix(indent)}#{@value.to_s}\n"
 	end
 end
 
-# DSOperation ####################################################################################################
+# DspOperation ####################################################################################################
 
-class DSOperation < DSExpression
+class DspOperation < DspExpression
 	@@logicalOperators = [ "+", "-", "*", "/", "." ]
 	@@arithmeticOperators = [ "!", "<", "<=", "==", ">", ">=", "&&", "||", "^" ]
 	
@@ -691,26 +691,22 @@ class DSOperation < DSExpression
 		@secondExpression = secondExpression
 		consume @firstExpression.getConsumed + 1 + @secondExpression.getConsumed
 	end
-	
 	def getFirstExpression
 		@firstExpression
 	end
-	
 	def getOperator
 		@operator
 	end
-	
 	def getSecondExpression
 		@secondExpression
 	end
-	
 	def self.parse(tokens, firstExpression)
-		dbgElementsTokens "DSOperation.parse", tokens
+		dbgElementsTokens "DspOperation.parse", tokens
 		operator = tokens[firstExpression.getConsumed]
-		if DSOperation.isOperator(operator)
-			secondExpression = DSExpression.parse(tokens[(firstExpression.getConsumed + 1)..-1])
+		if DspOperation.isOperator(operator)
+			secondExpression = DspExpression.parse(tokens[(firstExpression.getConsumed + 1)..-1])
 			if secondExpression.isValid
-				element = DSOperation.new(firstExpression, operator, secondExpression)
+				element = DspOperation.new(firstExpression, operator, secondExpression)
 			else
 				element = invalid()
 			end
@@ -720,11 +716,9 @@ class DSOperation < DSExpression
 		end
 		element
 	end
-	
 	def self.isOperator(token)
 		@@logicalOperators.include?(token) or @@arithmeticOperators.include?(token)
 	end
-	
 	def format(indent)
 		s = "#{prefix(indent)}OPERATION\n"
 		s << @firstExpression.format(indent + 1)
@@ -736,11 +730,12 @@ class DSOperation < DSExpression
 	
 end 
 
-# DSFunctionCall ####################################################################################################
+# DspFunctionCall ####################################################################################################
 
-class DSFunctionCall < DSExpression
+class DspFunctionCall < DspExpression
 	def initialize(name, tokens)
-		# dbgElements "DSFunctionCall.initialize"
+		# dbgElements "DspFunctionCall.initialize"
+		# TODO: Put parsing logic into parse and not in initialize at all
 		super()
 		@name = name
 		consumed = 2
@@ -756,7 +751,7 @@ class DSFunctionCall < DSExpression
 				consumed += 1
 				i += 1
 			else
-				param = DSExpression.parse(tokens[i..-1])
+				param = DspExpression.parse(tokens[i..-1])
 				@params.push(param) if param.isValid
 				consumed += param.getConsumed()
 				i += param.getConsumed()
@@ -764,14 +759,20 @@ class DSFunctionCall < DSExpression
 		end
 		consume consumed
 	end
+	def getName
+		@name
+	end
+	def getParams
+		@params
+	end
 	def self.parse tokens
-		dbgElementsTokens "DSFunctionCall.parse", tokens
+		dbgElementsTokens "DspFunctionCall.parse", tokens
 		if [ "return", "break", "continue" ].include?(tokens[0])
-			element = DSBuiltInFunction(tokens)
-		elsif not DSObject.isQName(tokens[0]) or @@keywords.include?(tokens[0]) or not tokens[1].eql?("(")
+			element = DspReservedFunction(tokens)
+		elsif not DspObject.isQName(tokens[0]) or @@keywords.include?(tokens[0]) or not tokens[1].eql?("(")
 			element = invalid()
 		else
-			element = DSFunctionCall.new(tokens[0], tokens)
+			element = DspFunctionCall.new(tokens[0], tokens)
 		end
 		element
 	end
@@ -789,9 +790,9 @@ class DSFunctionCall < DSExpression
 	
 end
 
-# DSBuiltInFunction ####################################################################################################
+# DspReservedFunction ####################################################################################################
 
-class DSBuiltInFunction < DSExpression
+class DspReservedFunction < DspFunctionCall
 	def initialize(name, expression)
 		super()
 		@name = name
@@ -802,18 +803,24 @@ class DSBuiltInFunction < DSExpression
 		end
 		consume consumed
 	end
+	def getName
+		@name
+	end
+	def getExpression
+		@expression
+	end
 	def self.parse tokens
-		dbgElementsTokens "DSBuiltInFunction.parse", tokens
+		dbgElementsTokens "DspReservedFunction.parse", tokens
 		if [ "return", "break", "continue" ].include?(tokens[0])
 			if tokens[0].eql?("return")
-				expression = DSExpression.parse(tokens[1..-1])
+				expression = DspExpression.parse(tokens[1..-1])
 				if expression.isValid
-					element = DSBuiltInFunction.new(tokens[0], expression)
+					element = DspReservedFunction.new(tokens[0], expression)
 				else
 					element = invalid()
 				end
 			else
-				element = DSBuiltInFunction.new(tokens[0], nil)
+				element = DspReservedFunction.new(tokens[0], nil)
 			end
 		else
 			element = invalid()
@@ -825,24 +832,24 @@ class DSBuiltInFunction < DSExpression
 	end
 end
 
-# DSControl ####################################################################################################
+# DspControl ####################################################################################################
 
-class DSControl < DSStatement
+class DspControl < DspStatement
 	def initialize
 		super
 	end
 	def self.parse tokens
-		dbgElementsTokens "DSControl.parse", tokens
+		dbgElementsTokens "DspControl.parse", tokens
 		if tokens[0].eql?("if")
-			element = DSIf.parse(tokens)
-		elsif tokens[0].eql?("for") and DSObject.isName(tokens[1])
-			element = DSFor.parse(tokens)
+			element = DspIf.parse(tokens)
+		elsif tokens[0].eql?("for") and DspObject.isName(tokens[1])
+			element = DspFor.parse(tokens)
 		elsif tokens[0].eql?("while") and tokens[1].eql?("(")
-			element = DSWhile.parse(tokens)
+			element = DspWhile.parse(tokens)
 		elsif tokens[0].eql?("do")
-			element = DSDo.parse(tokens)
+			element = DspDo.parse(tokens)
 		elsif tokens[0].eql?("switch")
-			element = DSSwitch.parse(tokens)
+			element = DspSwitch.parse(tokens)
 		else
 			element = invalid()
 		end
@@ -850,9 +857,9 @@ class DSControl < DSStatement
 	end
 end
 
-# DSIf ####################################################################################################
+# DspIf ####################################################################################################
 
-class DSIf < DSControl
+class DspIf < DspControl
 	def initialize(conditions)
 		super()
 		@conditions = conditions
@@ -861,8 +868,11 @@ class DSIf < DSControl
 		consumed += 1 # end
 		consume consumed
 	end
+	def getConditions
+		@conditions
+	end
 	def self.parse tokens
-		dbgElementsTokens "DSIf.parse", tokens
+		dbgElementsTokens "DspIf.parse", tokens
 		conditions = Array.new
 		if tokens[0].eql?("if") and tokens[1].eql?("(")
 			consumed = 0
@@ -879,7 +889,7 @@ class DSIf < DSControl
 					seenElse = true
 				end
 			
-				condition = DSCondition.parse tokens[consumed..-1]
+				condition = DspCondition.parse tokens[consumed..-1]
 				if condition.isValid
 					conditions.push(condition)
 					consumed += condition.getConsumed
@@ -892,7 +902,7 @@ class DSIf < DSControl
 			end while(condition.isValid)
 			
 			if conditions.size > 0 and tokens[consumed].eql?("end")
-				element = DSIf.new(conditions)
+				element = DspIf.new(conditions)
 			else
 				element = invalid()
 			end
@@ -911,9 +921,9 @@ class DSIf < DSControl
 	end
 end
 
-# DSCondition ####################################################################################################
+# DspCondition ####################################################################################################
 
-class DSCondition < DSObject
+class DspCondition < DspObject
 	def initialize(conditionType, expression, block)
 		super()
 		@conditionType = conditionType
@@ -936,25 +946,25 @@ class DSCondition < DSObject
 		block.getStatements
 	end
 	def self.parse tokens
-		dbgElementsTokens "DSCondition.parse", tokens
+		dbgElementsTokens "DspCondition.parse", tokens
 		isElse = tokens[0].eql?("else")
 		if (["if", "elsif"].include?(tokens[0]) and tokens[1].eql?("(")) or isElse
 			if isElse
-				expression = DSExpression.parse( ["true" ] )
-				block = DSBlock.parse(tokens[1..-1], ["end"])
+				expression = DspExpression.parse( ["true" ] )
+				block = DspBlock.parse(tokens[1..-1], ["end"])
 				if block.isValid
-					element = DSCondition.new(tokens[0], expression, block)
+					element = DspCondition.new(tokens[0], expression, block)
 				else
 					element = invalid()
 				end
 			else
 				consumed = 2
-				expression = DSExpression.parse(tokens[consumed..-1])
+				expression = DspExpression.parse(tokens[consumed..-1])
 				if expression.isValid and tokens[consumed + expression.getConsumed].eql?(")")
 					consumed += expression.getConsumed + 1
-					block = DSBlock.parse(tokens[consumed..-1], ["elsif", "else", "end"])
+					block = DspBlock.parse(tokens[consumed..-1], ["elsif", "else", "end"])
 					if block.isValid
-						element = DSCondition.new(tokens[0], expression, block)
+						element = DspCondition.new(tokens[0], expression, block)
 					else
 						element = invalid()
 					end
@@ -974,9 +984,9 @@ class DSCondition < DSObject
 	end	
 end
 
-# DSFor ####################################################################################################
+# DspFor ####################################################################################################
 
-class DSFor < DSControl
+class DspFor < DspControl
 	def initialize(variant, block)
 		super()
 		@variant = variant
@@ -990,12 +1000,12 @@ class DSFor < DSControl
 		@block.getStatements
 	end
 	def self.parse tokens
-		dbgElementsTokens "DSFor.parse", tokens
-		if tokens[0].eql?("for") and DSObject.isName(tokens[1])
-			if tokens[2].eql?("in") and DSObject.isQName(tokens[3])
-				element = DSForIn.parse(tokens)
+		dbgElementsTokens "DspFor.parse", tokens
+		if tokens[0].eql?("for") and DspObject.isName(tokens[1])
+			if tokens[2].eql?("in") and DspObject.isQName(tokens[3])
+				element = DspForIn.parse(tokens)
 			elsif tokens[2].eql?("from")
-				element = DSForFrom.parse(tokens)
+				element = DspForFrom.parse(tokens)
 			else
 				element = invalid()
 			end
@@ -1006,9 +1016,9 @@ class DSFor < DSControl
 	end
 end
 
-# DSForIn ####################################################################################################
+# DspForIn ####################################################################################################
 
-class DSForIn < DSFor
+class DspForIn < DspFor
 	def initialize(variant, set, block)
 		super(variant, block)
 		@set = set
@@ -1018,12 +1028,12 @@ class DSForIn < DSFor
 		@set
 	end
 	def self.parse tokens
-		dbgElementsTokens "DSForIn.parse", tokens
+		dbgElementsTokens "DspForIn.parse", tokens
 		variant = tokens[1]
 		set = tokens[3]
-		block = DSBlock.parse(tokens[4..-1], [ "end" ])
+		block = DspBlock.parse(tokens[4..-1], [ "end" ])
 		if block.isValid
-			element = DSForIn.new(variant, set, block)
+			element = DspForIn.new(variant, set, block)
 		else
 			element = invalid()
 		end
@@ -1037,9 +1047,9 @@ class DSForIn < DSFor
 	end
 end
 
-# DSForFrom ####################################################################################################
+# DspForFrom ####################################################################################################
 
-class DSForFrom < DSFor
+class DspForFrom < DspFor
 	def initialize(variant, startExpression, endExpression, block)
 		super(variant, block)
 		@startExpression = startExpression
@@ -1053,18 +1063,18 @@ class DSForFrom < DSFor
 		@endExpression
 	end
 	def self.parse tokens
-		dbgElementsTokens "DSForFrom.parse", tokens
+		dbgElementsTokens "DspForFrom.parse", tokens
 		variant = tokens[1]
 		consumed = 3
-		startExpression = DSExpression.parse(tokens[consumed..-1])
+		startExpression = DspExpression.parse(tokens[consumed..-1])
 		if startExpression.isValid and tokens[consumed + startExpression.getConsumed].eql?("to")
 			consumed += startExpression.getConsumed + 1
-			endExpression = DSExpression.parse(tokens[consumed..-1])
+			endExpression = DspExpression.parse(tokens[consumed..-1])
 			if endExpression.isValid
 				consumed += endExpression.getConsumed
-				block = DSBlock.parse(tokens[consumed..-1], [ "end" ])
+				block = DspBlock.parse(tokens[consumed..-1], [ "end" ])
 				if block.isValid
-					element = DSForFrom.new(variant, startExpression, endExpression, block)
+					element = DspForFrom.new(variant, startExpression, endExpression, block)
 				else
 					element = invalid()
 				end
@@ -1086,25 +1096,31 @@ class DSForFrom < DSFor
 	end
 end
 
-# DSWhile ####################################################################################################
+# DspWhile ####################################################################################################
 
-class DSWhile < DSControl
+class DspWhile < DspControl
 	def initialize(expression, block)
 		super()
 		@expression = expression
 		@block = block
 		consume 2 + expression.getConsumed + 1 + block.getConsumed
 	end
+	def getExpression
+		@expression
+	end
+	def getStatements
+		@block.getStatements
+	end
 	def self.parse tokens
-		dbgElementsTokens "DSWhile.parse", tokens
+		dbgElementsTokens "DspWhile.parse", tokens
 		if tokens[0].eql?("while") and tokens[1].eql?("(")
 			consumed = 2
-			expression = DSExpression.parse(tokens[2..-1])
+			expression = DspExpression.parse(tokens[2..-1])
 			if expression.isValid and tokens[2 + expression.getConsumed()].eql?(")")
 				consumed += expression.getConsumed + 1
-				block = DSBlock.parse(tokens[consumed..-1], [ "end" ])
+				block = DspBlock.parse(tokens[consumed..-1], [ "end" ])
 				if block.isValid()
-					element = DSWhile.new(expression, block)				
+					element = DspWhile.new(expression, block)				
 				else
 					element = invalid()
 				end
@@ -1125,25 +1141,31 @@ class DSWhile < DSControl
 	end
 end
 
-# DSDo ####################################################################################################
+# DspDo ####################################################################################################
 
-class DSDo < DSControl
+class DspDo < DspControl
 	def initialize(block, expression)
 		super()
 		@block = block
 		@expression = expression
 		consume 1 + block.getConsumed + 1 + expression.getConsumed + 1
 	end
+	def getExpression
+		@expression
+	end
+	def getStatements
+		@block.getStatements
+	end
 	def self.parse tokens
-		dbgElementsTokens "DSDo.parse", tokens
+		dbgElementsTokens "DspDo.parse", tokens
 		if tokens[0].eql?("do")
 			consumed = 1
-			block = DSBlock.parse(tokens[consumed..-1], [ "while" ])
+			block = DspBlock.parse(tokens[consumed..-1], [ "while" ])
 			if block.isValid and tokens[consumed + block.getConsumed].eql?("(")
 				consumed += block.getConsumed + 1
-				expression = DSExpression.parse(tokens[consumed..-1])
+				expression = DspExpression.parse(tokens[consumed..-1])
 				if expression.isValid
-					element = DSDo.new(block, expression)
+					element = DspDo.new(block, expression)
 				else
 					element = invalid()
 				end
@@ -1164,10 +1186,10 @@ class DSDo < DSControl
 	end
 end
 
-# DSSwitch ####################################################################################################
+# DspSwitch ####################################################################################################
 
 
-class DSSwitch < DSControl
+class DspSwitch < DspControl
 	def initialize(expression, cases)
 		super()
 		@expression = expression
@@ -1177,16 +1199,22 @@ class DSSwitch < DSControl
 		consumed += 1
 		consume consumed
 	end
+	def getExpression
+		@expression
+	end
+	def getCases
+		@cases
+	end
 	def self.parse tokens
-		dbgElementsTokens "DSSwitch.parse", tokens
+		dbgElementsTokens "DspSwitch.parse", tokens
 		if tokens[0].eql?("switch") and tokens[1].eql?("(")
 			consumed = 2
-			expression = DSExpression.parse(tokens[consumed..-1])
+			expression = DspExpression.parse(tokens[consumed..-1])
 			if expression.isValid and tokens[consumed + expression.getConsumed].eql?(")")
 				consumed += expression.getConsumed + 1
 				cases = Array.new
 				begin
-					dscase = DSCase.parse(tokens[consumed..-1])
+					dscase = DspCase.parse(tokens[consumed..-1])
 					if dscase.isValid
 						cases.push(dscase)
 						consumed += dscase.getConsumed
@@ -1195,7 +1223,7 @@ class DSSwitch < DSControl
 					end
 				end while dscase.isValid and not tokens[consumed].eql?("end")
 				if cases.size > 0 #and tokens[consumed].eql?("end")
-					element = DSSwitch.new(expression, cases)
+					element = DspSwitch.new(expression, cases)
 				else
 					element = invalid()
 				end
@@ -1217,17 +1245,23 @@ class DSSwitch < DSControl
 	end
 end
 
-# DSCase ####################################################################################################
+# DspCase ####################################################################################################
 
-class DSCase < DSObject
+class DspCase < DspObject
 	def initialize(expression, block, isDefault)
 		super()
 		@expression = expression
 		@block = block
 		consume 1 + (isDefault ? 1 : expression.getConsumed) + block.getConsumed
 	end
+	def getExpression
+		@expression
+	end
+	def getStatements
+		@block.getStatements
+	end
 	def self.parse tokens
-		dbgElementsTokens "DSCase.parse", tokens
+		dbgElementsTokens "DspCase.parse", tokens
 		if tokens[0].eql?("case")
 			isDefault = false
 			element = nil
@@ -1235,10 +1269,10 @@ class DSCase < DSObject
 			if tokens[1].eql?("default")
 				isDefault = true
 				consumed += 1
-				expression = DSExpression.parse( [ "true" ] )
+				expression = DspExpression.parse( [ "true" ] )
 			else
 				#consumed += 1
-				expression = DSExpression.parse(tokens[consumed..-1])
+				expression = DspExpression.parse(tokens[consumed..-1])
 				if expression.isValid
 					consumed += expression.getConsumed
 				else
@@ -1246,9 +1280,9 @@ class DSCase < DSObject
 				end
 			end
 			if expression != nil
-				block = DSBlock.parse(tokens[consumed..-1], [ "end" ])
+				block = DspBlock.parse(tokens[consumed..-1], [ "end" ])
 				if block.isValid
-					element = DSCase.new(expression, block, isDefault)
+					element = DspCase.new(expression, block, isDefault)
 				else
 					a=5/0
 					element = invalid()

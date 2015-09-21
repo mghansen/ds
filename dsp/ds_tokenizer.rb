@@ -304,7 +304,7 @@ class TokenList
 			cur = tokens[i]
 			after = ((i >= tokens.size - 1) ? " " : tokens[i + 1])
 			if i == 0
-				if DSObject.isName(cur)
+				if DspObject.isName(cur)
 					cumulative = cur
 				else
 					newTokenList.push(cur)
@@ -314,7 +314,7 @@ class TokenList
 					if cumulative.size == 0
 						newTokenList.push(cur)
 					else
-						if DSObject.isName(after)
+						if DspObject.isName(after)
 							cumulative << ".#{after}"
 							i += 1
 						else
@@ -323,7 +323,7 @@ class TokenList
 							cumulative = ""
 						end
 					end
-				elsif DSObject.isName(cur)
+				elsif DspObject.isName(cur)
 					if cumulative.size == 0
 						cumulative << cur
 					else

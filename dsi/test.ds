@@ -1,8 +1,25 @@
-func one()
-	a = 1 + 2
+class one from two
+	func three(four)
+		switch("donuts")
+			case "fritters"
+				print("fritters will now print twice")
+			end
+			case "bacon" 
+				print("fritters for the last time")
+			end
+			case q 
+				print("This is the real answer.")
+			end
+		end
+	end
+
 end
 
 STOP_READING_HERE
+
+func one()
+	a = 1 + 2
+end
 
 class one from two
 	func three(four)

@@ -2,7 +2,8 @@
 
 require_relative '../dsp/ds_parser'
 require_relative '../dsp/ds_elements'
-require_relative 'ds_context'
+require_relative 'ds_templates'
+require_relative 'ds_runtime'
 
 $verboseLoader = true
 
@@ -17,6 +18,13 @@ class LoaderState
 		@@nextId = 1
 		@variables = Array.new
 		@constants = Array.new
+	end
+	
+	def getVariables
+		@variables
+	end
+	def getConstants
+		@constants
 	end
 	
 	def addVariable(name)
@@ -34,7 +42,7 @@ class LoaderState
 	end
 	
 	def addConstant(value)
-		# Value is loaded from constant each time the context loads
+		# Value is loaded from constant each time the template loads
 		# Don't bother checking for uniqueness here since the name is different for each call
 		name = "0__const_#{@@nextId}"
 		@@nextId += 1
@@ -46,12 +54,13 @@ end
 
 # Loader ####################################################################################################
 #
-# Creates context objects from the syntax objects in the parser
+# Creates template objects from the syntax objects in the parser
 
 class Loader
 
 	def initialize
-		@globalContext = nil
+		@globalTemplate = nil
+		@useDirectives = Array.new
 	end
 	
 	def loadFile(filename)
@@ -66,94 +75,98 @@ class Loader
 		parser.parseAll
 		document = parser.getDocument
 		
-		loadContexts(document.getStatements)
+		loadTemplates(document.getStatements)
 	end
 
-	def loadContexts(statements)
-		@globalContext = loadGlobalContext(statements)
+	def loadTemplates(statements)
+		@globalTemplate = loadGlobalTemplate(statements)
 		# ...
+		# TODO: Load files listed with "new"
 	end
 
-	def loadGlobalContext(statements)
-		# Allowed in the global context are use, variable declaration, enum declaration, class declaration, function declaration
-		# TODO: Move setup logic out of the context into this class
-		context = DsiGlobalContext.new
+	def loadGlobalTemplate(statements)
+		# Allowed in the global template are use, variable declaration, enum declaration, class declaration, function declaration
+		# TODO: Move setup logic out of the template into this class
+		
+		useDirectives = Array.new #
+		
+		template = DsiGlobalTemplate.new
 		statements.each do |s|
-			if s.is_a?(DSUse)
-				debugLoader "Global context sees Use"
-				name = new DsiUse(s.getFilename)
-				context.addUse(name)
+			if s.is_a?(DspUse)
+				debugLoader "Global template sees Use"
+				@useDirectives.push(name)
 				
-			elsif s.is_a?(DSVariableDeclaration)
-				debugLoader "Global context sees Var"
+			elsif s.is_a?(DspVariableDeclaration)
+				debugLoader "Global template sees Var"
 				name = new DsiVar(s.getName) # TODO implement
-				context.addVar(name)
+				template.addVar(name)
 				
-			elsif s.is_a?(DSEnumDeclaration)
-				debugLoader "Global context sees Enum"
+			elsif s.is_a?(DspEnumDeclaration)
+				debugLoader "Global template sees Enum"
 				name = s.getName
 				values = s.getValues
-				context.addEnum(name, values)
+				template.addEnum(name, values)
 				
-			elsif s.is_a?(DSClassDeclaration)
-				debugLoader "Global context sees Class"
-				item = loadClassContext(s)
+			elsif s.is_a?(DspClassDeclaration)
+				debugLoader "Global template sees Class"
+				item = loadClassTemplate(s)
 				if item.isValid
-					context.addClass(item)
+					template.addClass(item)
 				end
 				
-			elsif s.is_a?(DSClassDeclaration)
-				debugLoader "Global context sees Function"
-				item = loadFunctionContext(s)
+			elsif s.is_a?(DspClassDeclaration)
+				debugLoader "Global template sees Function"
+				item = loadFunctionTemplate(s)
 				if item.isValid
-					context.addFunction(item)
+					template.addFunction(item)
 				end
 			end
 		end
-		context
+		template
 	end
 	
-	def loadClassContext(declaration)
+	def loadClassTemplate(declaration)
 		# Allowed in a class are variable declaration, function declaration
-		debugLoader "loadClassContext"
+		debugLoader "loadClassTemplate"
 		name = declaration.getName
 		baseClass = declaration.getBaseClass
 		vars = Set.new
-		functionContexts = Array.new
+		functionTemplates = Array.new
 		
 		declaration.getStatements.each do |s|
-			debugLoader "Class context sees Var"
-			if s.is_a?(DSVariableDeclaration)
+			debugLoader "Class template sees Var"
+			if s.is_a?(DspVariableDeclaration)
 				vars.push(s.getName)
 				
-			elsif s.is_a?(DSFunctionDeclaration)
-			debugLoader "Class context sees Function"
-				item = loadFunctionContext(s)
+			elsif s.is_a?(DspFunctionDeclaration)
+			debugLoader "Class template sees Function"
+				item = loadFunctionTemplate(s)
 				if item.isValid
-					functionContexts.addFunction(item)
+					functionTemplates.push(item)
 				end
 			end
 		end
 		
-		context = DsiFunctionContext.new(name, baseClass)
-		context
+		template = DsiClassTemplate.new(name, baseClass, vars, functionTemplates)
+		template
 		
 	end
 	
-	def loadFunctionContext(declaration)
+	def loadFunctionTemplate(declaration)
 		# Allowed in a function are variable declarations and instructions
+		debugLoader "loadClassTemplate"
 		name = declaration.getName
 		params = declaration.getParams
 		instructions = Array.new
 			# Includes actions (function calls, assignment, operations, other expressions),
-			#          var declarations (which modify the context),
+			#          var declarations (which modify the template),
 			#          control (if, for, while, do, switch, break, continue, return)
 			
 		loaderState = LoaderState.new
 			
 		instructions = processStatements(declaration.getStatements, loaderState)
-		context = DsiFunctionContext.new(name, params, loaderState.getVars, instructions)
-		context
+		template = DsiFunctionTemplate.new(name, params, loaderState.getVariables, instructions)
+		template
 	end
 
 # Loader: process objects ####################################################################################################
@@ -162,40 +175,40 @@ class Loader
 		# parse statements into instructions
 		newStatements = Array.new
 		statements.each do |statement|
-			if statement.is_a?(DSVariableDeclaration)
+			if statement.is_a?(DspVariableDeclaration)
 				loaderState.addVariable(statement.getName)
 				
-			elsif statement.is_a?(DSFunctionCall)
+			elsif statement.is_a?(DspFunctionCall)
 				item = processFunctionCall(statement, loaderState)
 				newStatements.push(item)
 				
-			elsif statement.is_a?(DSAssignment)
+			elsif statement.is_a?(DspAssignment)
 				loaderState.addVariable(statement.getLValue)
 				expression = processExpression(statement.getRValue, loaderState)
 				item = DsiAssignment.new(statement.getLValue, statement.getOperator, expression)
 				newStatements.push(item)
 				
-			elsif statement.is_a?(DSIf)
+			elsif statement.is_a?(DspIf)
 				item = processIf(statement, loaderState)
 				newStatements.push(item)
 				
-			elsif statement.is_a?(DSForIn)
+			elsif statement.is_a?(DspForIn)
 				item = processForIn(statement, loaderState)
 				newStatements.push(item)
 				
-			elsif statement.is_a?(DSForFrom)
+			elsif statement.is_a?(DspForFrom)
 				item = processForFrom(statement, loaderState)
 				newStatements.push(item)
 				
-			elsif statement.is_a?(DSWhile)
+			elsif statement.is_a?(DspWhile)
 				item = processWhile(statement, loaderState)
 				newStatements.push(item)
 				
-			elsif statement.is_a?(DSDo)
+			elsif statement.is_a?(DspDo)
 				item = processDo(statement, loaderState)
 				newStatements.push(item)
 				
-			elsif statement.is_a?(DSSwitch)
+			elsif statement.is_a?(DspSwitch)
 				item = processSwitch(statement, loaderState)
 				newStatements.push(item)
 				
@@ -228,7 +241,7 @@ class Loader
 	end
 	
 	def processCondition(statement, loaderState)
-		expression = processExpression(statement.getExpression, processExpression)
+		expression = processExpression(statement.getExpression, loaderState)
 		statements = processStatements(statement.getStatements, loaderState)
 		item = DsiCondition.new(statement.getConditionType, expression, statements)
 		item
@@ -237,38 +250,38 @@ class Loader
 	def processForIn(statement, loaderState)
 		loaderState.addVar(statement.getVariant)
 		set = processSetstatement.getSet
-		statements = processStatements(statement.getStatements, processExpression)
+		statements = processStatements(statement.getStatements, loaderState)
 		item = DsiForIn.new(statement.getVariant, set, statements)
 	end
 	
 	def processForFrom(statement, loaderState)
 		loaderState.addVar(statement.getVariant)
-		startExpression = processExpression(statement.getStartExpression, processExpression)
-		endExpression = processExpression(statement.getEndExpression, processExpression)
-		statements = processStatements(statement.getStatements, processExpression)
+		startExpression = processExpression(statement.getStartExpression, loaderState)
+		endExpression = processExpression(statement.getEndExpression, loaderState)
+		statements = processStatements(statement.getStatements, loaderState)
 		item = DsiForFrom.new(statement.getVariant, startExpression, endExpression, statements)
 		item
 	end
 	
 	def processWhile(statement, loaderState)
-		expression = processExpression(statemet.getExpression, processExpression)
-		statements = processStatements(statement.getStatements, processExpression)
+		expression = processExpression(statemet.getExpression, loaderState)
+		statements = processStatements(statement.getStatements, loaderState)
 		item = DsiWhile.new(expresion, statements)
 	end
 	
 	def processDo(statement, loaderState)
-		statements = processStatements(statement.getStatements, processExpression)
-		expression = processExpression(statemet.getExpression, processExpression)
+		statements = processStatements(statement.getStatements, loaderState)
+		expression = processExpression(statemet.getExpression, loaderState)
 		item = DsiDo.new(statements, expresion)
 	end
 
 	def processSwitch(statement, loaderState)
-		expression = processExpression(statement.getExpression, processExpression)
+		expression = processExpression(statement.getExpression, loaderState)
 		cases = Array.new
 		statement.getCases.each do |c|
-			caseExpression = processExpression(c.getExpression, processExpression)
-			caseStatements = processStatements(c.getStatements, processExpression)
-			newCase = DsiCase(caseExpression, caseStatemnts)
+			caseExpression = processExpression(c.getExpression, loaderState)
+			caseStatements = processStatements(c.getStatements, loaderState)
+			newCase = DsiCase.new(caseExpression, caseStatements)
 			cases.push(newCase)
 		end
 		item = DsiSwitch.new(expression, cases)
@@ -278,20 +291,20 @@ class Loader
 	def processExpression(expression, loaderState)
 
 		# Expression
-		if expression.is_a?(DSOperation)
-			firstExpression = processExpression(expression.getFirstExpression)
-			secondExpression = processExpression(expression.getSecondExpression)
+		if expression.is_a?(DspOperation)
+			firstExpression = processExpression(expression.getFirstExpression, loaderState)
+			secondExpression = processExpression(expression.getSecondExpression, loaderState)
 			item = DsiOperation(firstExpression, expression.getOperator, secondExpression)
 		
-		elsif expression.is_a?(DSFunctionCall)
+		elsif expression.is_a?(DspFunctionCall)
 			item = processFunctionCall(expression)
 			
-		elsif expression.is_a?(DSConstant)
-			if(expression.is_a?(DSNumber))
+		elsif expression.is_a?(DspConstant)
+			if(expression.is_a?(DspNumber))
 				varName = loaderState.addConstant(DsiNumberValue.new(expression.getValue))
-			elsif(expression.is_a?(DSString))
+			elsif(expression.is_a?(DspString))
 				varName = loaderState.addConstant(DsiStringValue.new(expression.getValue))
-			elsif(expression.is_a?(DSBool))
+			elsif(expression.is_a?(DspBool))
 				varName = loaderState.addConstant(DsiBoolValue.new(expression.getValue))
 			else
 				varName = nil
@@ -300,8 +313,8 @@ class Loader
 				item = DsiVariable.new(varName)
 			end
 			
-		elsif expression.is_a?(DSQName)
-			item = DsiVariable.new(expression.name)
+		elsif expression.is_a?(DspQName)
+			item = DsiVariable.new(expression.getName)
 
 		else
 			item = nil
