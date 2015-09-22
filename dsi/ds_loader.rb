@@ -42,7 +42,7 @@ class LoaderState
 			end
 		end
 		if not found
-			var = DsiVariableName.new(name) # TODO: consistently add vars and constants
+			var = DsiVariable.new(name) # TODO: consistently add vars and constants
 			@variables.push(var)
 		end
 	end
@@ -89,6 +89,10 @@ class Loader
 		# ...
 		# TODO: Load files listed with "new"
 	end
+	
+	def getGlobalTemplate
+		@globalTemplate
+	end
 
 	def loadGlobalTemplate(statements)
 		# Allowed in the global template are use, variable declaration, enum declaration, class declaration, function declaration
@@ -97,7 +101,7 @@ class Loader
 		# TODO: Global assignments
 		
 		useDirectives = Array.new #
-		vars = Array.new # Used to be Set
+		vars = Array.new
 		enums = Array.new
 		classTemplates = Array.new
 		functionTemplates = Array.new
@@ -106,22 +110,12 @@ class Loader
 		statements.each do |s|
 			if s.is_a?(DspUse)
 				debugLoader "Global template sees Use"
-				@useDirectives.push(name)
+				@useDirectives.push(s.getFilename)
 				
 			# TODO: Separate out decl and assignment. The name confusion is crashing at runtime
 			elsif s.is_a?(DspVariableDeclaration)
-				debugLoader "Global template sees Var"
-				found = false
-				vars.each do |v|
-					if v.getName.eql?(s.getName)
-						found = true
-						break
-					end
-				end
-				if not found
-					var = DsVariable.new(s.getName)
-					vars.add(var)
-				end
+				var = DsiVariable.new(s.getName)
+				globalState.addVariable(var) # vars.push(var)
 			
 			elsif s.is_a?(DspAssignment) and s.getRValue.is_a?(DspConstant)
 				debugLoader "Global template sees Assignment"
@@ -134,12 +128,19 @@ class Loader
 				end
 				if not found
 					if s.is_a?(DspAssignment)
-						var = DsVariable.new(s.getName)
-						var.setValue(s.getValue)
+						if(s.getValue.is_a?(DspNumber))
+							varName = globalState.addConstant(DsiNumberValue.new(s.getValue.getValue))
+						elsif(s.getValue.is_a?(DspString))
+							varName = globalState.addConstant(DsiStringValue.new(s.getValue.getValue))
+						elsif(s.getValue.is_a?(DspBool))
+							varName = globalState.addConstant(DsiBoolValue.new(s.getValue.getValue))
+						else
+							varName = nil
+						end
 					else
 						var = DsVariable.new(s.getName)
+						globalState.addVariable(var)
 					end
-					vars.add(var)
 				end
 			
 			elsif s.is_a?(DspEnumDeclaration)
@@ -193,7 +194,9 @@ class Loader
 		end
 		
 		# Add constants and gloval vars
-		
+		globalState.getConstants.each { |v| vars.push(v) }
+		globalState.getVariables.each { |v| vars.push(v) }
+			
 		template = DsiGlobalTemplate.new(vars, enums, classTemplates, functionTemplates)
 		template
 	end
@@ -228,7 +231,7 @@ class Loader
 	
 	def loadFunctionTemplate(declaration, globalState, classState)
 		# Allowed in a function are variable declarations and instructions
-		debugLoader "loadClassTemplate"
+		debugLoader "loadFunctionTemplate #{declaration.getName}(#{declaration.getParams})"
 		name = declaration.getName
 		params = declaration.getParams
 		instructions = Array.new
@@ -247,7 +250,7 @@ class Loader
 	end
 
 # Loader: process objects ####################################################################################################
-	
+
 	def processStatements(statements, loaderState)
 		# parse statements into instructions
 		newStatements = Array.new
@@ -371,7 +374,7 @@ class Loader
 		if expression.is_a?(DspOperation)
 			firstExpression = processExpression(expression.getFirstExpression, loaderState)
 			secondExpression = processExpression(expression.getSecondExpression, loaderState)
-			item = DsiOperation(firstExpression, expression.getOperator, secondExpression)
+			item = DsiOperation.new(firstExpression, expression.getOperator, secondExpression)
 		
 		elsif expression.is_a?(DspFunctionCall)
 			item = processFunctionCall(expression)
@@ -387,11 +390,11 @@ class Loader
 				varName = nil
 			end
 			if not varName == nil
-				item = DsiVariableNanme.new(varName)
+				item = DsiVariable.new(varName)
 			end
 			
 		elsif expression.is_a?(DspQName)
-			item = DsiVariableNanme.new(expression.getName)
+			item = DsiVariable.new(expression.getName)
 
 		else
 			item = nil

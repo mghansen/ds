@@ -10,10 +10,19 @@ end
 # DsiTemplate ####################################################################################################
 
 class DsiStateTemplate
-	def initialize(name)
+	def initialize(name, variables)
 		debugTemplate "DsiTemplate #{name}"
 		@valid = true
 		@name = name
+		@variables = variables
+	end
+	
+	def getName
+		@name
+	end
+	
+	def getVariables
+		@variables
 	end
 	
 	def isValid
@@ -34,15 +43,10 @@ class DsiGlobalTemplate < DsiStateTemplate
 	# Allowed in the global template are use, variable declaration, enum declaration, class declaration, function declaration
 	def initialize(vars, enums, classTemplates, functionTemplates)
 		debugTemplate "DsiGlobalTemplate"
-		super("0_GLOBAL_CONTEXT")
-		@vars = Array.new
+		super("0__globalContext", vars)
 		@enums = Array.new
 		@classTemplates = classTemplates
 		@functionTemplates = functionTemplates
-	end
-	
-	def getVars
-		@vars
 	end
 	
 	def getClassTemplates
@@ -78,9 +82,8 @@ end
 class DsiClassTemplate < DsiStateTemplate
 	def initialize(name, baseClass, vars, functionTemplates)
 		debugTemplate "DsiClassTemplate #{name} #{baseClass}"
-		super(name)
+		super(name, vars)
 		@baseClass = baseClass
-		@vars = vars
 		@functionTemplates = functionTemplates
 	end
 	
@@ -108,9 +111,8 @@ end
 class DsiFunctionTemplate < DsiStateTemplate
 	def initialize(name, paramNames, vars, instructions)
 		debugTemplate "DsiFunctionTemplate #{name}"
-		super(name) # TODO: Scope
+		super(name, vars) # TODO: Scope
 		@paramNames = paramNames
-		@vars = vars
 		@instructions = instructions
 		@className = nil
 	end
@@ -128,21 +130,3 @@ class DsiFunctionTemplate < DsiStateTemplate
 	end
 end
 
-# DsiVariableName ####################################################################################################
-
-class DsiVariableNanme
-	def initialize(name)
-		debugTemplate "DsiVariableNanme #{name}"
-		@name = name
-		@value = nil
-	end
-	def setValue(value)
-		@value = value
-	end
-	def getName
-		@name
-	end
-	def getValue
-		@value
-	end
-end

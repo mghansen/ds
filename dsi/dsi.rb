@@ -6,6 +6,9 @@
 ###
 
 require_relative 'ds_loader'
+require_relative 'ds_templates'
+require_relative 'ds_runtime'
+require_relative 'ds_state'
 
 # Main ============================================================
 
@@ -18,7 +21,10 @@ def dsiMain
 	
 	loader = Loader.new()
 	loader.loadFile("#{ARGV[0]}")
-#	#context = loader.getContext
+	
+	template = loader.getGlobalTemplate
+	context = DsiGlobalContext.new(template)
+	context.run
 
 end
 
@@ -106,9 +112,6 @@ ds_templates.rb
 			@instructions = instructions
 	class DsiTemplateVariable
 		@name = name
-		@value = value
-	class DsiTemplateVariableList
-		@constants = constants
-		@variables = variables
+		@value = value (DsiValue)
 
 =end

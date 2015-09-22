@@ -18,7 +18,7 @@ end
 # Instructions ####################################################################################################
 
 class DsiAssignment < DsiInstruction
-	def initizlize(lValue, operator, rValue)
+	def initialize(lValue, operator, rValue)
 		debugRuntime "DsiAssignment #{lValue} #{operator}"	
 		super()
 		@lValue = lValue
@@ -31,7 +31,7 @@ class DsiAssignment < DsiInstruction
 	end
 end
 
-# TODO: Control instructions
+# Control Instructions ####################################################################################################
 
 class DsiIf < DsiInstruction
 	def initialize(conditions)
@@ -142,6 +142,8 @@ class DsiFunctionCall < DsiExpression
 	end
 end
 
+# DsiValue (runtime objects) ####################################################################################################
+
 class DsiValue < DsiExpression
 	# Can be number, string, bool, enum, functionCall, array, or var
 	# Part of state
@@ -196,19 +198,6 @@ end
 #	end
 #end
 
-class DsiNameValue
-	def initialize(name, value)
-		@name
-		@value
-	end
-	def getName
-		@name
-	end
-	def getValue
-		@value
-	end
-end
-
 class DsiClassValue < DsiValue
 	def initialize(value)
 		debugRuntime "DsiClassValue"
@@ -216,13 +205,17 @@ class DsiClassValue < DsiValue
 end
 
 class DsiVariable < DsiExpression
-	def initialize(name)
+	def initialize(name, value = nil)
 		debugRuntime "DsiVariable #{name}"
 		super()
 		@name = name
+		@value = value
 	end
 	def getName
 		@name
+	end
+	def getValue
+		@value
 	end
 end
 
@@ -230,11 +223,6 @@ class DsiConstantVariable < DsiVariable
 	# Value is loaded from constant each time the template loads
 	def initialize(name, value)
 		debugRuntime "DsiConstantVariable #{name}"
-		super(name)
-		@value = value
-	end
-	def getValue
-		@value
+		super(name, value)
 	end
 end
-
