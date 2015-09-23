@@ -277,7 +277,7 @@ class DspUse < DspStatement
 		element
 	end
 	def format(indent)
-		"USE #{prefix(indent)}#{@filename}\n"
+		"#{prefix(indent)}USE #{@filename}\n"
 	end
 end
 

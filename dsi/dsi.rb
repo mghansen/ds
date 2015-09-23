@@ -8,7 +8,6 @@
 require_relative 'ds_loader'
 require_relative 'ds_templates'
 require_relative 'ds_instructions'
-require_relative 'ds_contexts'
 
 # Main ============================================================
 
@@ -23,8 +22,7 @@ def dsiMain
 	loader.loadFile("#{ARGV[0]}")
 	
 	template = loader.getGlobalTemplate
-	context = DsiGlobalContext.new(template)
-	context.run
+	template.run
 
 end
 

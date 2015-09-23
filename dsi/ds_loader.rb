@@ -33,6 +33,8 @@ class LoaderState
 		state = LoaderState.new(name, self)
 	end
 	
+	# TODO: Inherited state kept separate from current state. Can still traverse back through inhereted state.
+	
 	def addVariable(name)
 		found = false
 		@variables.each do |v|

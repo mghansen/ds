@@ -1,4 +1,5 @@
-require_relative "ds_contexts"
+#require_relative "ds_contexts"
+require_relative "ds_templates"
 
 $verboseInstructions = true
 
@@ -161,6 +162,8 @@ class DsiFunctionCall < DsiExpression
 end
 
 # DsiValue (runtime objects) ####################################################################################################
+
+# TODO: Reference count (for garbage collection)
 
 class DsiValue < DsiExpression
 	# Can be number, string, bool, enum, functionCall, array, or var
