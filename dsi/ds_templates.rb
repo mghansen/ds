@@ -1,5 +1,4 @@
 require 'set'
-#require_relative "ds_state"
 
 $verboseTemplate = true
 
@@ -121,12 +120,12 @@ class DsiFunctionTemplate < DsiStateTemplate
 		@name
 	end
 	
-	def setClassName(className)
-		@className = className
+	def getInstructions
+		@instructions
 	end
 	
-	def setInstructions(instructions)
-		@instructions = instructions
+	def setClassName(className)
+		@className = className
 	end
 end
 

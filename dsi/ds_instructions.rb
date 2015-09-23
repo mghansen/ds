@@ -1,17 +1,18 @@
-$verboseRuntime = true
+require_relative "ds_contexts"
 
-def debugRuntime text
-	puts text if $verboseRuntime
+$verboseInstructions = true
+
+def debugInstructions text
+	puts text if $verboseInstructions
 end
 
 # DsiInstruction ####################################################################################################
 
 class DsiInstruction
 	def initialize
-		debugRuntime "DsiInstruction"
+		debugInstructions "DsiInstruction"
 	end
 	def evaluate(state)
-		nil
 	end
 end
 
@@ -19,15 +20,34 @@ end
 
 class DsiAssignment < DsiInstruction
 	def initialize(lValue, operator, rValue)
-		debugRuntime "DsiAssignment #{lValue} #{operator}"	
+		debugInstructions "DsiAssignment #{lValue} #{operator}"	
 		super()
 		@lValue = lValue
-		@operator = operator
+		@operator = operator # "=", "+=", "-=", "*=", "/="
 		@rValue = rValue
 	end
 	def evaluate(state)
-		rValue = @rValue.evaluate
+		debugInstructions "DsiAssignment.evaluate #{@lValue} #{@operator}"
+		ret = nil
 		# Find the variable in lValue and make the assignment
+		lValue = state.getVariable(@lValue)
+		
+		if not lValue == nil
+			debugInstructions "DsiAssignment.evaluate #{lValue.getName}"
+			rValue = @rValue.evaluate(state)
+
+			case @operator
+			when "="
+				lValue.setValue(rValue)
+			when "+="
+			when "-="
+			when "*="
+			when "/="
+			else
+			end
+
+		end
+		debugInstructions "DsiAssignment.evaluate end"
 	end
 end
 
@@ -35,7 +55,7 @@ end
 
 class DsiIf < DsiInstruction
 	def initialize(conditions)
-		debugRuntime "DsiIf"
+		debugInstructions "DsiIf"
 		super()
 		@conditions = conditions
 	end
@@ -43,7 +63,7 @@ end
 
 class DsiCondition < DsiInstruction
 	def initialize(conditionType, expression, statemets)
-		debugRuntime "DsiCondition #{conditionType}"
+		debugInstructions "DsiCondition #{conditionType}"
 		super()
 		@conditionType = conditionType
 		@expression = expression
@@ -53,7 +73,7 @@ end
 
 class DsiForIn < DsiInstruction
 	def initialize(variant, set, statements)
-		debugRuntime "DsiForIn #{variant} in #{set}"
+		debugInstructions "DsiForIn #{variant} in #{set}"
 		super()
 		@variant = variant
 		@set = set
@@ -63,7 +83,7 @@ end
 
 class DsiForFrom < DsiInstruction
 	def initialize(variant, startExpression, endExpression, statements)
-		debugRuntime "DsiForFrom #{variant}"
+		debugInstructions "DsiForFrom #{variant}"
 		super()
 		@variant = variant
 		@startExpression = startExpression
@@ -74,7 +94,7 @@ end
 
 class DsiWhile < DsiInstruction
 	def initialize(expression, statements)
-		debugRuntime "DsiWhile"
+		debugInstructions "DsiWhile"
 		super()
 		@expression = expression
 		@statements = statements
@@ -83,7 +103,7 @@ end
 
 class DsiDo < DsiInstruction
 	def initialize(statements, expression)
-		debugRuntime "DsiDo"
+		debugInstructions "DsiDo"
 		super()
 		@statements = statements
 		@expression = expression
@@ -92,7 +112,7 @@ end
 
 class DsiSwitch < DsiInstruction
 	def initialize(expression, cases)
-		debugRuntime "DsiSwitch"
+		debugInstructions "DsiSwitch"
 		super()
 		@expression = expression
 		@cases = cases
@@ -101,7 +121,7 @@ end
 	
 class DsiCase
 	def initialize(expression, statements)
-		debugRuntime "DsiCase"
+		debugInstructions "DsiCase"
 		super()
 		@expression = expression
 		@statements = statements
@@ -112,16 +132,14 @@ end
 
 class DsiExpression < DsiInstruction
 	def initialize
-		debugRuntime "DsiExpression"
+		debugInstructions "DsiExpression"
 		super()
-	end
-	def evaluate(state)
 	end
 end
 
 class DsiOperation < DsiExpression
 	def initialize(leftExpression, operator, rightExpression)
-		debugRuntime "DsiOperation #{operator}"
+		debugInstructions "DsiOperation #{operator}"
 		super()
 		@leftExpression = leftExpression
 		@operator = operator
@@ -131,7 +149,7 @@ end
 
 class DsiFunctionCall < DsiExpression
 	def initialize(name, paramExpressions)
-		debugRuntime "DsiFunctionCall #{name}"
+		debugInstructions "DsiFunctionCall #{name}"
 		super()
 		@name = name
 		@paramExpressions = paramExpressions
@@ -148,36 +166,39 @@ class DsiValue < DsiExpression
 	# Can be number, string, bool, enum, functionCall, array, or var
 	# Part of state
 	def initialize(value)
-		debugRuntime "DsiValue"
+		debugInstructions "DsiValue"
 		super()
 		@value = value
+	end
+	def getValue
+		@value
 	end
 end	
 
 class DsiNumberValue < DsiValue
 	def initialize(value)
-		debugRuntime "DsiNumberValue #{value}"
+		debugInstructions "DsiNumberValue #{value}"
 		super
 	end
 end
 
 class DsiStringValue < DsiValue
 	def initialize(value)
-		debugRuntime "DsiStringValue #{value}"
+		debugInstructions "DsiStringValue #{value}"
 		super
 	end
 end
 
 class DsiBoolValue < DsiValue
 	def initialize(value)
-		debugRuntime "DsiBoolValue #{value}"
+		debugInstructions "DsiBoolValue #{value}"
 		super
 	end
 end
 
 class DsiEnumValue < DsiValue
 	def initialize(value)
-		debugRuntime "DsiEnumValue #{value}"
+		debugInstructions "DsiEnumValue #{value}"
 		super
 	end
 end
@@ -185,7 +206,7 @@ end
 class DsiFunctionReferenceValue < DsiValue
 	# ~function pointer
 	def initialize(value)
-		debugRuntime "DsiFunctionReferenceValue"
+		debugInstructions "DsiFunctionReferenceValue"
 		super
 	end
 end
@@ -193,20 +214,20 @@ end
 # TODO: Array is a reserved class
 #class DsiArray < DsiValue
 #	def initialize(value)
-#		debugRuntime "DsiArray"
+#		debugInstructions "DsiArray"
 #		super
 #	end
 #end
 
 class DsiClassValue < DsiValue
 	def initialize(value)
-		debugRuntime "DsiClassValue"
+		debugInstructions "DsiClassValue"
 	end
 end
 
 class DsiVariable < DsiExpression
 	def initialize(name, value = nil)
-		debugRuntime "DsiVariable #{name}"
+		debugInstructions "DsiVariable #{name}"
 		super()
 		@name = name
 		@value = value
@@ -222,7 +243,7 @@ end
 class DsiConstantVariable < DsiVariable
 	# Value is loaded from constant each time the template loads
 	def initialize(name, value)
-		debugRuntime "DsiConstantVariable #{name}"
+		debugInstructions "DsiConstantVariable #{name}"
 		super(name, value)
 	end
 end

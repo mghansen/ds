@@ -3,7 +3,7 @@
 require_relative '../dsp/ds_parser'
 require_relative '../dsp/ds_elements'
 require_relative 'ds_templates'
-require_relative 'ds_runtime'
+require_relative 'ds_instructions'
 
 $verboseLoader = true
 
