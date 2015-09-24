@@ -36,6 +36,7 @@ class DsiAssignment < DsiInstruction
 		if not lValue == nil
 			debugInstructions "DsiAssignment.evaluate #{lValue.getName}"
 			rValue = @rValue.evaluate(state)
+			debugInstructions "DsiAssignment.evaluate rValue #{rValue.value}"
 
 			case @operator
 			when "="
@@ -176,12 +177,18 @@ class DsiValue < DsiExpression
 	def getValue
 		@value
 	end
+	def evaluate(state)
+		debugInstructions "DsiValue.evaluate #{@value}"
+	end
 end	
 
 class DsiNumberValue < DsiValue
 	def initialize(value)
 		debugInstructions "DsiNumberValue #{value}"
 		super
+	end
+	def evaluate(state)
+		debugInstructions "DsiNumberValue.evaluate #{@value}"
 	end
 end
 
@@ -190,12 +197,18 @@ class DsiStringValue < DsiValue
 		debugInstructions "DsiStringValue #{value}"
 		super
 	end
+	def evaluate(state)
+		debugInstructions "DsiStringValue.evaluate #{@value}"
+	end
 end
 
 class DsiBoolValue < DsiValue
 	def initialize(value)
 		debugInstructions "DsiBoolValue #{value}"
 		super
+	end
+	def evaluate(state)
+		debugInstructions "DsiBoolValue.evaluate #{@value}"
 	end
 end
 

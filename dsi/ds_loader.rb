@@ -1,4 +1,5 @@
 #TODO: Loader state pre-loads values
+#TODO: Loader state pre-loads values
 
 require_relative '../dsp/ds_parser'
 require_relative '../dsp/ds_elements'
@@ -28,6 +29,10 @@ class LoaderState
 	def getConstants
 		@constants
 	end
+	def getVariablesAndConstants
+		both = @variables + @constants
+		@both
+	end
 	
 	def getNewChildState(name)
 		state = LoaderState.new(name, self)
@@ -52,10 +57,11 @@ class LoaderState
 	def addConstant(value)
 		# Value is loaded from constant each time the template loads
 		# Don't bother checking for uniqueness here since the name is different for each call
-		name = "0__const_#{@@nextId}"
+		name = "0__const#{@@nextId}"
 		@@nextId += 1
 		var = DsiConstantVariable.new(name, value)
 		@constants.push(var)
+		
 		return name
 	end
 end
@@ -242,9 +248,8 @@ class Loader
 			#          control (if, for, while, do, switch, break, continue, return)
 			
 		loaderState = LoaderState.new(name, (classState == nil) ? globalState : classState)
-			
 		instructions = processStatements(declaration.getStatements, loaderState)
-		template = DsiFunctionTemplate.new(name, params, loaderState.getVariables, instructions)##
+		template = DsiFunctionTemplate.new(name, params, loaderState.getVariablesAndConstants, instructions)##
 		if not classState == nil
 			#template.setClassName(classState...
 		end
@@ -254,19 +259,24 @@ class Loader
 # Loader: process objects ####################################################################################################
 
 	def processStatements(statements, loaderState)
+		puts "Loader.processStatements: #{statements.size} statements"
 		# parse statements into instructions
 		newStatements = Array.new
 		statements.each do |statement|
 			if statement.is_a?(DspVariableDeclaration)
+				puts "Loader.processStatements declaration #{statement.getName}"
 				loaderState.addVariable(statement.getName)
 				
 			elsif statement.is_a?(DspFunctionCall)
+				puts "Loader.processStatements functionCall #{statement.getName}"
 				item = processFunctionCall(statement, loaderState)
 				newStatements.push(item)
 				
 			elsif statement.is_a?(DspAssignment)
+				puts "Loader.processStatements assignment #{statement.getLValue} #{statement.getOperator}"
 				loaderState.addVariable(statement.getLValue)
 				expression = processExpression(statement.getRValue, loaderState)
+				puts "expression rValue #{expression.getValue}"
 				item = DsiAssignment.new(statement.getLValue, statement.getOperator, expression)
 				newStatements.push(item)
 				
@@ -374,24 +384,31 @@ class Loader
 
 		# Expression
 		if expression.is_a?(DspOperation)
+			puts "processExpression DspOperation"
 			firstExpression = processExpression(expression.getFirstExpression, loaderState)
 			secondExpression = processExpression(expression.getSecondExpression, loaderState)
 			item = DsiOperation.new(firstExpression, expression.getOperator, secondExpression)
 		
 		elsif expression.is_a?(DspFunctionCall)
+			puts "processExpression DspFunctionCall"
 			item = processFunctionCall(expression)
 			
 		elsif expression.is_a?(DspConstant)
+			puts "processExpression DspConstant"
 			if(expression.is_a?(DspNumber))
+				puts "processExpression DspNumber #{expression.getValue}"
 				varName = loaderState.addConstant(DsiNumberValue.new(expression.getValue))
 			elsif(expression.is_a?(DspString))
+				puts "processExpression DspString #{expression.getValue}"
 				varName = loaderState.addConstant(DsiStringValue.new(expression.getValue))
 			elsif(expression.is_a?(DspBool))
+				puts "processExpression DspBool #{expression.getValue}"
 				varName = loaderState.addConstant(DsiBoolValue.new(expression.getValue))
 			else
 				varName = nil
 			end
 			if not varName == nil
+				puts "adding variable #{varName}"
 				item = DsiVariable.new(varName)
 			end
 			
