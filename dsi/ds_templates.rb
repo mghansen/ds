@@ -15,20 +15,26 @@ end
 # Runtime states ####################################################################################################
 
 class DsiRuntimeState
-	def initialize(currentScopeName, variables, parentState)
+	def initialize(currentScopeName, variableNames, parentState)
 		debugState "DsiRuntimeState.initialize scope=#{currentScopeName}"
 		@currentScopeName = currentScopeName
-		@variables = variables
+		variableNames = variableNames
+		@variables = Array.new
 		@parentState= parentState
 		@returnValue = nil # ?
-		debugState "DsiRuntimeState.initialize variables=#{@variables.to_s}"
+		debugState "DsiRuntimeState.initialize variables=#{variableNames.to_s}"
+		
+		# TODO: Default values from the template
+		variableNames.each do |v|
+			@variables.push(DsiVariable.new(v))
+		end
 	end
 	def getName
 		@currentScopeName
 	end
-	#def getVariables
-	#	@variables
-	#end
+	def getVariables
+		@variables
+	end
 	def getVariable(name)
 		var = nil
 		@variables.each do |v|
@@ -41,27 +47,27 @@ class DsiRuntimeState
 		if var == nil and not @parentState == nil
 			var = @parentState.getVariable(name)
 		end
-		var
 		debugState "DsiRuntimeState.getVariable end"
+		var
 	end
 end
 
 # DsiTemplate ####################################################################################################
 
 class DsiStateTemplate
-	def initialize(name, variables)
+	def initialize(name, variableNames)
 		debugTemplate "DsiTemplate #{name}"
 		@valid = true
 		@name = name
-		@variables = variables
+		@variableNames = variableNames
 	end
 	
 	def getName
 		@name
 	end
 	
-	def getVariables
-		@variables
+	def getVariableNames
+		@variableNames
 	end
 	
 	def isValid
@@ -73,7 +79,7 @@ class DsiStateTemplate
 	end
 	
 	def cloneVariableList(variablesIn)
-		variables = Array.new
+		newVariableList = Array.new
 		variablesIn.each do |v|
 			if v.is_a?(DsiNumberValue)
 				debugState "cloneVariableList DsiNumberValue #{v.getName}"
@@ -97,10 +103,10 @@ class DsiStateTemplate
 			end
 			if not val == nil
 				var = Variable.new(v.getName, val)
-				variables.push(var)
+				newVariableList.push(var)
 			end
 		end
-		variables
+		newVariableList
 	end
 end
 
@@ -108,9 +114,9 @@ end
 
 class DsiGlobalTemplate < DsiStateTemplate
 	# Allowed in the global template are use, variable declaration, enum declaration, class declaration, function declaration
-	def initialize(variables, enums, classTemplates, functionTemplates)
+	def initialize(variableNames, enums, classTemplates, functionTemplates)
 		debugTemplate "DsiGlobalTemplate"
-		super("0__GlobalTemplate", variables)
+		super("!GlobalTemplate", variableNames)
 		@enums = Array.new
 		@classTemplates = classTemplates
 		@functionTemplates = functionTemplates
@@ -143,9 +149,9 @@ class DsiGlobalTemplate < DsiStateTemplate
 	end
 
 	def makeGlobalState
-		variables = cloneVariableList(@variables)
+		variableNames = cloneVariableList(@variableNames)
 		scopeName = getName
-		globalState = DsiRuntimeState.new("0__Global", variables, nil)
+		globalState = DsiRuntimeState.new("!GlobalRuntimeState", variableNames, nil)
 		globalState
 	end
 	
@@ -194,9 +200,9 @@ end
 # DsiFunctionTemplate ####################################################################################################
 
 class DsiFunctionTemplate < DsiStateTemplate
-	def initialize(name, paramNames, vars, instructions)
+	def initialize(name, paramNames, variableNames, instructions)
 		debugTemplate "DsiFunctionTemplate #{name}"
-		super(name, vars) # TODO: Scope
+		super(name, variableNames) # TODO: Scope
 		@paramNames = paramNames
 		@instructions = instructions
 		@className = nil
@@ -217,9 +223,9 @@ class DsiFunctionTemplate < DsiStateTemplate
 	def makeFunctionState(parentState)
 		debugState "DsiFunctionTemplate.invoke #{getName}"
 		scopeName = getName # TODO: Class names
-		variables = cloneVariableList(getVariables)
+		variableNames = cloneVariableList(getVariableNames)
 		# TODO: Param variable names/values need to be added to the state
-		functionState = DsiRuntimeState.new(scopeName, variables, parentState)
+		functionState = DsiRuntimeState.new(scopeName, variableNames, parentState)
 		functionState
 	end
 	

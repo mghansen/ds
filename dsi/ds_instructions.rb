@@ -189,6 +189,7 @@ class DsiNumberValue < DsiValue
 	end
 	def evaluate(state)
 		debugInstructions "DsiNumberValue.evaluate #{@value}"
+		super
 	end
 end
 
@@ -199,6 +200,7 @@ class DsiStringValue < DsiValue
 	end
 	def evaluate(state)
 		debugInstructions "DsiStringValue.evaluate #{@value}"
+		super
 	end
 end
 
@@ -209,12 +211,17 @@ class DsiBoolValue < DsiValue
 	end
 	def evaluate(state)
 		debugInstructions "DsiBoolValue.evaluate #{@value}"
+		super
 	end
 end
 
 class DsiEnumValue < DsiValue
 	def initialize(value)
 		debugInstructions "DsiEnumValue #{value}"
+		super
+	end
+	def evaluate(state)
+		debugInstructions "DsiEnumValue.evaluate #{@value}"
 		super
 	end
 end
@@ -239,8 +246,13 @@ class DsiClassValue < DsiValue
 	def initialize(value)
 		debugInstructions "DsiClassValue"
 	end
+	def evaluate(state)
+		debugInstructions "DsiClassValue.evaluate #{@value}"
+		super
+	end
 end
 
+# Variables exist in the state
 class DsiVariable < DsiExpression
 	def initialize(name, value = nil)
 		debugInstructions "DsiVariable #{name}"
@@ -254,12 +266,10 @@ class DsiVariable < DsiExpression
 	def getValue
 		@value
 	end
-end
-
-class DsiConstantVariable < DsiVariable
-	# Value is loaded from constant each time the template loads
-	def initialize(name, value)
-		debugInstructions "DsiConstantVariable #{name}"
-		super(name, value)
+	def setValue(v)
+		@value = v
+	end
+	def evaluate(state)
+		@value
 	end
 end

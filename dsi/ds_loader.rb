@@ -17,53 +17,37 @@ end
 class LoaderState
 	def initialize(stateName, parent)
 		@@nextId = 1
-		@variables = Array.new
-		@constants = Array.new
+		@variableNames = Array.new
+		#@stringTable = Array.new
 		@parent = parent
 		@stateName = stateName
 	end
 	
-	def getVariables
-		@variables
-	end
-	def getConstants
-		@constants
-	end
-	def getVariablesAndConstants
-		both = @variables + @constants
-		@both
+	#def getVariables
+	#	@variables
+	#end
+	
+	def getVariableNames
+		@variableNames
 	end
 	
 	def getNewChildState(name)
 		state = LoaderState.new(name, self)
 	end
 	
-	# TODO: Inherited state kept separate from current state. Can still traverse back through inhereted state.
-	
-	def addVariable(name)
+	def addVariableName(name)
 		found = false
-		@variables.each do |v|
-			if name.eql?(v.getName)
+		@variableNames.each do |v|
+			if name.eql?(v)
 				found = true
 				break
 			end
 		end
 		if not found
-			var = DsiVariable.new(name) # TODO: consistently add vars and constants
-			@variables.push(var)
+			@variableNames.push(name)
 		end
 	end
 	
-	def addConstant(value)
-		# Value is loaded from constant each time the template loads
-		# Don't bother checking for uniqueness here since the name is different for each call
-		name = "0__const#{@@nextId}"
-		@@nextId += 1
-		var = DsiConstantVariable.new(name, value)
-		@constants.push(var)
-		
-		return name
-	end
 end
 
 # Loader ####################################################################################################
@@ -109,7 +93,7 @@ class Loader
 		# TODO: Global assignments
 		
 		useDirectives = Array.new #
-		vars = Array.new
+		variableNames = Array.new
 		enums = Array.new
 		classTemplates = Array.new
 		functionTemplates = Array.new
@@ -122,35 +106,14 @@ class Loader
 				
 			# TODO: Separate out decl and assignment. The name confusion is crashing at runtime
 			elsif s.is_a?(DspVariableDeclaration)
-				var = DsiVariable.new(s.getName)
-				globalState.addVariable(var) # vars.push(var)
-			
-			elsif s.is_a?(DspAssignment) and s.getRValue.is_a?(DspConstant)
+				#var = DsiVariable.new(s.getName)
+				#globalState.addVariable(var) # vars.push(var)
+				globalState.addVariableName(s.getName)
+				
+			elsif s.is_a?(DspAssignment)				
 				debugLoader "Global template sees Assignment"
-				found = false
-				vars.each do |v|
-					if v.getName.eql?(s.getName)
-						found = true
-						break
-					end
-				end
-				if not found
-					if s.is_a?(DspAssignment)
-						if(s.getValue.is_a?(DspNumber))
-							varName = globalState.addConstant(DsiNumberValue.new(s.getValue.getValue))
-						elsif(s.getValue.is_a?(DspString))
-							varName = globalState.addConstant(DsiStringValue.new(s.getValue.getValue))
-						elsif(s.getValue.is_a?(DspBool))
-							varName = globalState.addConstant(DsiBoolValue.new(s.getValue.getValue))
-						else
-							varName = nil
-						end
-					else
-						var = DsVariable.new(s.getName)
-						globalState.addVariable(var)
-					end
-				end
-			
+				globalState.addVariableName(s.getName)
+				
 			elsif s.is_a?(DspEnumDeclaration)
 				debugLoader "Global template sees Enum"
 				name = s.getName
@@ -201,11 +164,10 @@ class Loader
 			end
 		end
 		
-		# Add constants and gloval vars
-		globalState.getConstants.each { |v| vars.push(v) }
-		globalState.getVariables.each { |v| vars.push(v) }
+		# Add constants and global variableNames
+		globalState.getVariableNames.each { |v| variableNames.push(v) }
 			
-		template = DsiGlobalTemplate.new(vars, enums, classTemplates, functionTemplates)
+		template = DsiGlobalTemplate.new(variableNames, enums, classTemplates, functionTemplates)
 		template
 	end
 	
@@ -241,7 +203,7 @@ class Loader
 		# Allowed in a function are variable declarations and instructions
 		debugLoader "loadFunctionTemplate #{declaration.getName}(#{declaration.getParams})"
 		name = declaration.getName
-		params = declaration.getParams
+		paramNames = declaration.getParams
 		instructions = Array.new
 			# Includes actions (function calls, assignment, operations, other expressions),
 			#          var declarations (which modify the template),
@@ -249,7 +211,7 @@ class Loader
 			
 		loaderState = LoaderState.new(name, (classState == nil) ? globalState : classState)
 		instructions = processStatements(declaration.getStatements, loaderState)
-		template = DsiFunctionTemplate.new(name, params, loaderState.getVariablesAndConstants, instructions)##
+		template = DsiFunctionTemplate.new(name, paramNames, loaderState.getVariableNames, instructions)##
 		if not classState == nil
 			#template.setClassName(classState...
 		end
@@ -274,7 +236,7 @@ class Loader
 				
 			elsif statement.is_a?(DspAssignment)
 				puts "Loader.processStatements assignment #{statement.getLValue} #{statement.getOperator}"
-				loaderState.addVariable(statement.getLValue)
+				loaderState.addVariableName(statement.getLValue)
 				expression = processExpression(statement.getRValue, loaderState)
 				puts "expression rValue #{expression.getValue}"
 				item = DsiAssignment.new(statement.getLValue, statement.getOperator, expression)
@@ -397,19 +359,15 @@ class Loader
 			puts "processExpression DspConstant"
 			if(expression.is_a?(DspNumber))
 				puts "processExpression DspNumber #{expression.getValue}"
-				varName = loaderState.addConstant(DsiNumberValue.new(expression.getValue))
+				item = DsiNumberValue.new(expression.getValue)
 			elsif(expression.is_a?(DspString))
 				puts "processExpression DspString #{expression.getValue}"
-				varName = loaderState.addConstant(DsiStringValue.new(expression.getValue))
+				item = DsiStringValue.new(expression.getValue)
 			elsif(expression.is_a?(DspBool))
 				puts "processExpression DspBool #{expression.getValue}"
-				varName = loaderState.addConstant(DsiBoolValue.new(expression.getValue))
+				item = DsiBoolValue.new(expression.getValue)
 			else
-				varName = nil
-			end
-			if not varName == nil
-				puts "adding variable #{varName}"
-				item = DsiVariable.new(varName)
+				puts "processExpression constant of unknown type"
 			end
 			
 		elsif expression.is_a?(DspQName)
@@ -422,25 +380,3 @@ class Loader
 		item
 	end
 end
-
-#		# What has expressions?
-#		DSAssignment.@rValue
-#		DSOperation.@firstExpression
-#		DSOperation.secondExpression
-#		DSCondition.@expression
-#		DSForFrom.@startExpression
-#		DSForFrom.@endExpression
-#		DSWhile.@expression
-#		DSDo.@expression
-#		DSSwitch.@expression
-#		DSCase.@expression
-#		_return.@expression
-#
-#		DSFunctionCall.@params
-#
-#		# Types of expression
-#		DSOperation
-#		DSFunctionCall
-#		DSNumber (end)
-#		DSString (end
-#		DSBool (end)
