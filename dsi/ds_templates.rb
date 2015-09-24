@@ -15,18 +15,19 @@ end
 # Runtime states ####################################################################################################
 
 class DsiRuntimeState
-	def initialize(currentScopeName, variableNames, parentState)
+	def initialize(currentScopeName, variables, parentState)
 		@currentScopeName = currentScopeName
-		variableNames = variableNames
-		@variables = Array.new
+		@variables = variables
 		@parentState= parentState
 		@returnValue = nil # ?
-		debugState "DsiRuntimeState.initialize variables=#{variableNames.to_s}"
+		debugState "DsiRuntimeState.initialize variables.size #{variables.size}"
+		debugState "DsiRuntimeState.initialize variables=#{variables.to_s}"
+		# TODO: deep copy of variables, default values
 		
 		# TODO: Default values from the template
-		variableNames.each do |v|
-			@variables.push(DsiVariable.new(v))
-		end
+		#variableNames.each do |v|
+		#	@variables.push(DsiVariable.new(v))
+		#end
 	end
 	def getName
 		@currentScopeName
@@ -49,24 +50,48 @@ class DsiRuntimeState
 		debugState "DsiRuntimeState.getVariable end"
 		var
 	end
+	def addVariable(variable)
+		found = false
+		@variables.each do |v|
+			if v.getName.eql?(variable.getName)
+				found = false
+			end
+		end
+		if not found
+			@variables.push(variable)
+		end
+	end
+	def dump
+		debugState "DsiRuntimeState.dump"
+		debugState "    CURRENT SCOPE #{@currentScopeName}"
+		@variables.each { |v| debugState "    VARIABLE #{v.getName} : #{v.getValue}" }
+		if not @parentState == nil
+			debugState "    PARENT STATE"
+			@parentState.dump
+		end
+	end
+	
 end
 
 # DsiTemplate ####################################################################################################
 
 class DsiStateTemplate
-	def initialize(name, variableNames)
-		debugTemplate "DsiTemplate #{name}"
+	def initialize(name, variables)
+		debugTemplate "DsiTemplate #{name}, #{variables.size} variables"
 		@valid = true
 		@name = name
-		@variableNames = variableNames
+		puts "((( DsiStateTemplate.initialize variables size #{variables.size}, #{variables.to_s}"
+		@variables = cloneVariableList(variables)
+		puts "))) DsiStateTemplate.initialize variables size #{@variables.size}, #{@variables.to_s}"
+		#debugTemplate "DsiTemplate #{name}, #{@variables.size} variables"
 	end
 	
 	def getName
 		@name
 	end
 	
-	def getVariableNames
-		@variableNames
+	def getVariables
+		@variables
 	end
 	
 	def isValid
@@ -79,32 +104,39 @@ class DsiStateTemplate
 	
 	def cloneVariableList(variablesIn)
 		newVariableList = Array.new
+		
 		variablesIn.each do |v|
-			if v.is_a?(DsiNumberValue)
+			debugState "cloneVariableList cloning  #{v.getName}"
+			if v.getValue.is_a?(DsiNumberValue)
 				debugState "cloneVariableList DsiNumberValue #{v.getName}"
-				val = DsiNumberValue.new(v.GetValue)
-			elsif v.is_a?(DsiStringValue)
+				value = DsiNumberValue.new(v.getValue)
+			elsif v.getValue.is_a?(DsiStringValue)
 				debugState "cloneVariableList DsiStringValue #{v.getName}"
-				val = DsiStringValue.new(v.GetValue)
-			elsif v.is_a?(DsiBoolValue)
-				val = DsiBoolValue.new(v.GetValue)
-			elsif v.is_a?(DsiEnumValue)
-				val = DsiEnumValue.new(v.GetValue)
-			elsif v.is_a?(DsiFunctionReferenceValue)
-				val = DsiFunctionReferenceValue.new(v.GetValue)
-			elsif v.is_a?(DsiClassValue)
-				val = DsiClassValue.new(v.GetValue)
-			elsif v.is_a?(DsiValue)
-				val = DsiValue.new(v.GetValue)
+				value = DsiStringValue.new(v.getValue)
+			elsif v.getValue.is_a?(DsiBoolValue)
+				value = DsiBoolValue.new(v.getValue)
+			elsif v.getValue.is_a?(DsiEnumValue)
+				value = DsiEnumValue.new(v.getValue)
+			elsif v.getValue.is_a?(DsiFunctionReferenceValue)
+				value = DsiFunctionReferenceValue.new(v.getValue)
+			elsif v.getValue.is_a?(DsiClassValue)
+				value = DsiClassValue.new(v.getValue)
+			elsif v.getValue.is_a?(DsiValue)
+				value = DsiValue.new(v.getValue)
 			else
-				val = nil
-			
+				value = nil
 			end
-			if not val == nil
-				var = Variable.new(v.getName, val)
-				newVariableList.push(var)
+
+			if not value == nil
+				debugState "cloneVariableList cloning #{v.getName} #{value.getValue.getValue.to_s}"
+				newVariable = DsiVariable.new(v.getName, value)
+				debugState "cloneVariableList New variable #{newVariable.getName} #{newVariable.getValue.to_s}"
+				newVariableList.push(newVariable)
+				debugState "cloneVariableList newVariableList () size #{newVariableList.size}"
 			end
 		end
+		
+		debugState "cloneVariableList newVariableList size #{newVariableList.size}"
 		newVariableList
 	end
 end
@@ -113,9 +145,9 @@ end
 
 class DsiGlobalTemplate < DsiStateTemplate
 	# Allowed in the global template are use, variable declaration, enum declaration, class declaration, function declaration
-	def initialize(variableNames, enums, classTemplates, functionTemplates)
+	def initialize(variables, enums, classTemplates, functionTemplates)
 		debugTemplate "DsiGlobalTemplate"
-		super("!GlobalTemplate", variableNames)
+		super("`GlobalTemplate", variables)
 		@enums = Array.new
 		@classTemplates = classTemplates
 		@functionTemplates = functionTemplates
@@ -148,9 +180,8 @@ class DsiGlobalTemplate < DsiStateTemplate
 	end
 
 	def makeGlobalState
-		#variableNames = cloneVariableList(@variableNames)
 		scopeName = getName
-		globalState = DsiRuntimeState.new("!GlobalRuntimeState", @variableNames, nil)
+		globalState = DsiRuntimeState.new("`GlobalRuntimeState", @variables, nil)
 		globalState
 	end
 	
@@ -159,8 +190,10 @@ class DsiGlobalTemplate < DsiStateTemplate
 		mainTemplate = getFunctionTemplate("main")
 		if not mainTemplate == nil
 			globalState = makeGlobalState
+puts ">>>>>>>makeGlobalState size #{globalState.getVariables.size}"
 			debugState "DsiGlobalContext.run - Creating context for main"
 			params = Array.new # TODO: Command line parameters
+			globalState.dump
 			ret = mainTemplate.invoke(globalState)
 		end
 	end
@@ -170,19 +203,15 @@ end
 # DsiClassTemplate ####################################################################################################
 
 class DsiClassTemplate < DsiStateTemplate
-	def initialize(name, baseClass, vars, functionTemplates)
+	def initialize(name, baseClass, variables, functionTemplates)
 		debugTemplate "DsiClassTemplate #{name} #{baseClass}"
-		super(name, vars)
+		super(name, variables)
 		@baseClass = baseClass
 		@functionTemplates = functionTemplates
 	end
 	
 	def getName
 		@name
-	end
-	
-	def addVar(name)
-		@vars.add(name)
 	end
 	
 	def addFunction(functionTemplate)
@@ -199,9 +228,11 @@ end
 # DsiFunctionTemplate ####################################################################################################
 
 class DsiFunctionTemplate < DsiStateTemplate
-	def initialize(name, paramNames, variableNames, instructions)
+	def initialize(name, paramNames, variables, instructions)
 		debugTemplate "DsiFunctionTemplate #{name}"
-		super(name, variableNames) # TODO: Scope
+		puts "DsiFunctionTemplate.initialize variables size #{variables.size}, #{variables.to_s}"
+		super(name, variables) # TODO: Scope
+		puts "DsiFunctionTemplate.initialize variables size #{getVariables.size}, #{getVariables.to_s}"
 		@paramNames = paramNames
 		@instructions = instructions
 		@className = nil
@@ -219,13 +250,20 @@ class DsiFunctionTemplate < DsiStateTemplate
 		@className = className
 	end
 	
+	def dump(state)
+		debugState "DsiFunctionTemplate.dump FUNCTION #{getName}"
+		state.getVariables.each do |v|
+			debugState "DsiFunctionTemplate.dump VARIABLE #{v.getName} : #{v.getValue}"
+		end
+	end
+	
 	def makeFunctionState(parentState)
-		debugState "DsiFunctionTemplate.invoke #{getName}"
-		scopeName = getName # TODO: Class names
-		#variableNames = cloneVariableList(getVariableNames)
-		#variableNames.each { |v| puts "makeFunctionState VARNAME #{v}" }
+		debugState "DsiFunctionTemplate.makeFunctionState #{getName}"
 		# TODO: Param variable names/values need to be added to the state
-		functionState = DsiRuntimeState.new(scopeName, getVariableNames, parentState)
+		scopeName = getName # TODO: Class names
+		variables = getVariables
+		debugState "**************DsiFunctionTemplate.makeFunctionState #{scopeName} variables #{variables.getSize}, #{variables.to_s}"
+		functionState = DsiRuntimeState.new(scopeName, variables, parentState)
 		functionState
 	end
 	
@@ -238,6 +276,9 @@ class DsiFunctionTemplate < DsiStateTemplate
 		getInstructions.each do |i|
 			i.evaluate(state)
 		end
+		
+		state.dump
+		#dump(state)
 	end
 	
 end

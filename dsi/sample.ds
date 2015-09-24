@@ -1,5 +1,7 @@
 use "externalLibraryName"
 
+g = 99
+
 func main()
 	a = 2
 	print(a)
