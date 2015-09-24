@@ -36,7 +36,7 @@ class DsiAssignment < DsiInstruction
 		if not lValue == nil
 			debugInstructions "DsiAssignment.evaluate #{lValue.getName}"
 			rValue = @rValue.evaluate(state)
-			debugInstructions "DsiAssignment.evaluate rValue #{rValue.value}"
+			debugInstructions "DsiAssignment.evaluate rValue #{rValue.getValue}"
 
 			case @operator
 			when "="
@@ -137,6 +137,10 @@ class DsiExpression < DsiInstruction
 		debugInstructions "DsiExpression"
 		super()
 	end
+	def evaluate(state)
+		debugInstructions "DsiFunctionCall.evauate"
+		super
+	end
 end
 
 class DsiOperation < DsiExpression
@@ -146,6 +150,10 @@ class DsiOperation < DsiExpression
 		@leftExpression = leftExpression
 		@operator = operator
 		@rightExpression = rightExpression
+	end
+	def evaluate(state)
+		debugInstructions "DsiFunctionCall.evauate"
+		super
 	end
 end
 
@@ -157,8 +165,10 @@ class DsiFunctionCall < DsiExpression
 		@paramExpressions = paramExpressions
 	end
 	def evaluate(state)
+		debugInstructions "DsiFunctionCall.evauate"
 		# Set up internal state of the function, including named params
 		# Loop through instructions
+		super
 	end
 end
 
@@ -177,8 +187,12 @@ class DsiValue < DsiExpression
 	def getValue
 		@value
 	end
+	def to_s
+		@value.to_s
+	end
 	def evaluate(state)
 		debugInstructions "DsiValue.evaluate #{@value}"
+		DsiValue.new(@value)
 	end
 end	
 

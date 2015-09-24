@@ -16,7 +16,6 @@ end
 
 class DsiRuntimeState
 	def initialize(currentScopeName, variableNames, parentState)
-		debugState "DsiRuntimeState.initialize scope=#{currentScopeName}"
 		@currentScopeName = currentScopeName
 		variableNames = variableNames
 		@variables = Array.new
@@ -149,9 +148,9 @@ class DsiGlobalTemplate < DsiStateTemplate
 	end
 
 	def makeGlobalState
-		variableNames = cloneVariableList(@variableNames)
+		#variableNames = cloneVariableList(@variableNames)
 		scopeName = getName
-		globalState = DsiRuntimeState.new("!GlobalRuntimeState", variableNames, nil)
+		globalState = DsiRuntimeState.new("!GlobalRuntimeState", @variableNames, nil)
 		globalState
 	end
 	
@@ -223,9 +222,10 @@ class DsiFunctionTemplate < DsiStateTemplate
 	def makeFunctionState(parentState)
 		debugState "DsiFunctionTemplate.invoke #{getName}"
 		scopeName = getName # TODO: Class names
-		variableNames = cloneVariableList(getVariableNames)
+		#variableNames = cloneVariableList(getVariableNames)
+		#variableNames.each { |v| puts "makeFunctionState VARNAME #{v}" }
 		# TODO: Param variable names/values need to be added to the state
-		functionState = DsiRuntimeState.new(scopeName, variableNames, parentState)
+		functionState = DsiRuntimeState.new(scopeName, getVariableNames, parentState)
 		functionState
 	end
 	
