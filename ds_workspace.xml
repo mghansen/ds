@@ -1,0 +1,18 @@
+<NotepadPlus>
+    <Project name="ds samples">
+        <File name="dsi\sample.ds" />
+        <File name="dsp\test.ds" />
+    </Project>
+    <Project name="dsp">
+        <File name="dsp\dsp.rb" />
+        <File name="dsp\ds_tokenizer.rb" />
+        <File name="dsp\ds_parser.rb" />
+        <File name="dsp\ds_elements.rb" />
+    </Project>
+    <Project name="dsi">
+        <File name="dsi\dsi.rb" />
+        <File name="dsi\ds_loader.rb" />
+        <File name="dsi\ds_instructions.rb" />
+        <File name="dsi\ds_templates.rb" />
+    </Project>
+</NotepadPlus>

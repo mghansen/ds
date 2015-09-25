@@ -1,5 +1,4 @@
 #TODO: Loader state pre-loads values
-#TODO: Loader state pre-loads values
 
 require_relative '../dsp/ds_parser'
 require_relative '../dsp/ds_elements'
@@ -13,6 +12,19 @@ def debugLoader text
 end
 
 # LoaderState ####################################################################################################
+
+class DspVariable
+	def initialize(name, value)
+		@name = name
+		@value = value
+	end
+	def getName
+		@name
+	end
+	def getValue
+		@value
+	end
+end
 
 class LoaderState
 	def initialize(stateName, parent)
@@ -32,21 +44,83 @@ class LoaderState
 		state = LoaderState.new(name, self)
 	end
 	
-	def addVariable(name, value)
-		puts "LoaderState.addVariable #{name}"
+	def self.translateDspValue(dspValue)
+		debugState "translateDspValue #{dspValue.getValue}"
+		dsiValueOut = nil
+		if dspValue.getValue.is_a?(DspNumber)
+			debugState "translateDspValue DspNumber #{dspValue.getValue}"
+			dsiValueOut = DsiNumberValue.new(dspValue.getValue)
+		elsif dspValue.getValue.is_a?(DspString)
+			debugState "translateDspValue DsiStringValue #{dspValue.getValue}"
+			dsiValueOut = DsiStringValue.new(dspValue.getValue)
+		elsif dspValue.getValue.is_a?(DspBool)
+			debugState "translateDspValue DsiStringValue #{dspValue.getValue}"
+			dsiValueOut = DsiBoolValue.new(dspValue.getValue)
+		#elsif dspValue.getValue.is_a?(DsiEnumValue)
+		#	dsiValueOut = DsiEnumValue.new(dspValue.getValue)
+		end
+		dsiValueOut
+	end
+	
+	def self.translateDspListToDsi(dspValues)
+		dsiValues = Array.new
+		dspValues.each do |v|
+			dsiValues.push(translateDspValue(v))
+		end
+		dsiValues
+	end
+	
+	def self.cloneDspValue(dspValue)
+		debugState "cloneDspValue #{dspValue.getValue}"
+		dspValueOut = nil
+		if dspValue.getValue.is_a?(DspNumber)
+			debugState "cloneDspValue DspNumber #{dspValue.getValue}"
+			dspValueOut = DspNumber.new(dspValue.getValue)
+		elsif dspValue.getValue.is_a?(DspString)
+			debugState "cloneDspValue DsiStringValue #{dspValue.getValue}"
+			dspValueOut = DspString.new(dspValue.getValue)
+		elsif dspValue.getValue.is_a?(DspBool)
+			debugState "cloneDspValue DsiStringValue #{dspValue.getValue}"
+			dspValueOut = DspBool.new(dspValue.getValue)
+		#elsif dspValue.getValue.is_a?(DsiEnumValue)
+		#	dspValueOut = DsiEnumValue.new(dspValue.getValue)
+		end
+		dspValueOut
+	end
+	
+	def addDspVariable(name, dspValue)
+		puts "LoaderState.addDspVariable #{name}"
 		found = false
 		@variables.each do |v|
-			if v.name.eql?(name)
+			if v.getName.eql?(name)
 				found = true
 				break
 			end
 		end
 		if not found
-			puts "LoaderState.addVariable adding #{name}"
-			@variables.push(DsiVariable.new(name, value))
+			puts "LoaderState.addDspVariable adding name #{name}"
+			puts "LoaderState.addDspVariable adding name #{dspValue.to_s}"
+			#clonedValue = self.class.cloneDspValue(dspValue)
+			@variables.push(DspVariable.new(name, dspValue))#clonedValue))
+			#puts "LoaderState.addDspVariable added value #{clonedValue.to_s}"
 		end
 	end
 	
+	#def addDspVariable(name, dspValue)
+	#	puts "LoaderState.addVariable #{name}"
+	#	found = false
+	#	@variables.each do |v|
+	#		if v.name.eql?(name)
+	#			found = true
+	#			break
+	#		end
+	#	end
+	#	if not found
+	#		puts "LoaderState.addVariable adding #{name}"
+	#		dsiValue = self.class.translateDspValue(dspValue)
+	#		@variables.push(dsiValue)
+	#	end
+	#end
 end
 
 # Loader ####################################################################################################
@@ -96,7 +170,7 @@ class Loader
 		enums = Array.new
 		classTemplates = Array.new
 		functionTemplates = Array.new
-		globalState = LoaderState.new("GLOBAL", nil)
+		globalLoaderState = LoaderState.new("GLOBAL", nil)
 
 		statements.each do |s|
 			if s.is_a?(DspUse)
@@ -106,16 +180,16 @@ class Loader
 			# TODO: Separate out decl and assignment. The name confusion is crashing at runtime
 			elsif s.is_a?(DspVariableDeclaration)
 				#var = DsiVariable.new(s.getName)
-				#globalState.addVariable(var) # vars.push(var)
-				#globalState.addVariableName(s.getName)
-				globalState.addVariable(s.getName, nil)
+				#globalLoaderState.addVariable(var) # vars.push(var)
+				#globalLoaderState.addVariableName(s.getName)
+				globalLoaderState.addDspVariable(s.getName, nil)
 				
 			elsif s.is_a?(DspAssignment)				
 				debugLoader "Global template sees Assignment"
-				#globalState.addVariableName(s.getLValue)
+				#globalLoaderState.addVariableName(s.getLValue)
 				if s.getRValue.is_a?(DspConstant)
 					debugLoader "Global template Assignment constant"
-					globalState.addVariable(s.getLValue, processConstant(s.getRValue))
+					globalLoaderState.addDspVariable(s.getLValue, processConstant(s.getRValue))
 				else
 				end
 				
@@ -161,7 +235,7 @@ class Loader
 					end
 				end
 				if not found
-					item = loadFunctionTemplate(s, globalState, nil)
+					item = loadFunctionTemplate(s, globalLoaderState, nil)
 					if item.isValid
 						functionTemplates.push(item)
 					end
@@ -170,13 +244,7 @@ class Loader
 		end
 		
 		# Add constants and global variableNames
-		variables = Array.new
-		puts "globalState, # of variables #{globalState.getVariables.size}"
-		globalState.getVariables.each do |v| 
-			debugLoader "Loading variable into global template: #{v.getName} #{v.getValue.to_s}"
-			variables.push(DsiVariable.new(v.getName, v.getValue))
-		end
-			
+		variables = self.class.translateDspListToDsi(globalState.getVariables)
 		template = DsiGlobalTemplate.new(variables, enums, classTemplates, functionTemplates)
 		template
 	end
@@ -222,6 +290,7 @@ class Loader
 		loaderState = LoaderState.new(name, (classState == nil) ? globalState : classState)
 		instructions = processStatements(declaration.getStatements, loaderState)
 		#template = DsiFunctionTemplate.new(name, paramNames, loaderState.getVariableNames, instructions)##
+		debugLoader "&&& loadFunctionTemplate variables #{loaderState.getVariables.to_s}"
 		template = DsiFunctionTemplate.new(name, paramNames, loaderState.getVariables, instructions)
 		if not classState == nil
 			#template.setClassName(classState...
@@ -239,7 +308,7 @@ class Loader
 		statements.each do |statement|
 			if statement.is_a?(DspVariableDeclaration)
 				puts "Loader.processStatements declaration #{statement.getName}"
-				loaderState.addVariable(statement.getName)
+				loaderState.addDspVariable(statement.getName)
 				
 			elsif statement.is_a?(DspFunctionCall)
 				puts "Loader.processStatements functionCall #{statement.getName}"
@@ -253,7 +322,7 @@ class Loader
 				if(statement.getRValue.is_a?(DspConstant))
 					rValue = statement.getRValue
 				end
-				loaderState.addVariable(statement.getLValue, rValue)
+				loaderState.addDspVariable(statement.getLValue, rValue)
 
 				expression = processExpression(statement.getRValue, loaderState)
 				puts "expression rValue #{expression.getValue}"
@@ -364,13 +433,16 @@ class Loader
 		puts "processConstant"
 		if(expression.is_a?(DspNumber))
 			puts "processConstant DspNumber #{expression.getValue}"
-			item = DsiNumberValue.new(expression.getValue)
+	#		item = DsiNumberValue.new(expression.getValue)
+			item = DspNumber.new(expression.getValue.to_s)
 		elsif(expression.is_a?(DspString))
 			puts "processConstant DspString #{expression.getValue}"
-			item = DsiStringValue.new(expression.getValue)
+	#		item = DsiStringValue.new(expression.getValue)
+			item = DspString.new(expression.getValue)
 		elsif(expression.is_a?(DspBool))
 			puts "processConstant DspBool #{expression.getValue}"
-			item = DsiBoolValue.new(expression.getValue)
+	#		item = DsiBoolValue.new(expression.getValue)
+			item = DspBool.new(expression.getValue)
 		else
 			puts "processConstant constant of unknown type"
 		end

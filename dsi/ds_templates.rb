@@ -1,5 +1,5 @@
 require 'set'
-
+require_relative '../dsp/ds_elements'
 $verboseTemplate = true
 
 def debugTemplate text
@@ -50,6 +50,7 @@ class DsiRuntimeState
 		debugState "DsiRuntimeState.getVariable end"
 		var
 	end
+	
 	def addVariable(variable)
 		found = false
 		@variables.each do |v|
@@ -61,6 +62,38 @@ class DsiRuntimeState
 			@variables.push(variable)
 		end
 	end
+	
+	def self.cloneDsiValue(dsiValueIn)
+		debugState "cloneDsiValue #{dsiValueIn.getName}"
+		dsiValueOut = nil
+		debugState "cloneDsiValue cloning  #{dsiValueIn.getValue}"
+		if dsiValueIn.getValue.is_a?(DsiNumberValue)
+			debugState "cloneDsiValue DsiNumberValue #{dsiValueIn.getValue}"
+			dsiValueOut = DsiNumberValue.new(v.getValue)
+		elsif dsiValueIn.getValue.is_a?(DsiStringValue)
+			debugState "cloneDsiValue DsiStringValue #{dsiValueIn.getValue}"
+			dsiValueOut = DsiStringValue.new(dsiValueIn.getValue)
+		elsif dsiValueIn.getValue.is_a?(DsiBoolValue)
+			debugState "cloneDsiValue DsiBoolValue #{dsiValueIn.getValue}"
+			dsiValueOut = DsiBoolValue.new(dsiValueIn.getValue)
+		elsif dsiValueIn.getValue.is_a?(DsiEnumValue)
+			debugState "cloneDsiValue DsiEnumValue #{dsiValueIn.getValue}"
+			dsiValueOut = DsiEnumValue.new(dsiValueIn.getValue)
+		elsif dsiValueIn.getValue.is_a?(DsiFunctionReferenceValue)
+			debugState "cloneDsiValue DsiFunctionReferenceValue #{dsiValueIn.getValue}"
+			dsiValueOut = DsiFunctionReferenceValue.new(dsiValueIn.getValue)
+		elsif dsiValueIn.getValue.is_a?(DsiClassValue)
+			debugState "cloneDsiValue DsiClassValue #{dsiValueIn.getValue}"
+			dsiValueOut = DsiClassValue.new(dsiValueIn.getValue)
+		elsif dsiValueIn.getValue.is_a?(DsiValue)
+			debugState "cloneDsiValue DsiValue #{dsiValueIn.getValue}"
+			dsiValueOut = DsiValue.new(dsiValueIn.getValue)
+		else
+			dsiValueOut = nil
+		end
+		dsiValueOut
+	end
+	
 	def dump
 		debugState "DsiRuntimeState.dump"
 		debugState "    CURRENT SCOPE #{@currentScopeName}"
@@ -75,14 +108,14 @@ end
 
 # DsiTemplate ####################################################################################################
 
-class DsiStateTemplate
+class DsiContextTemplate
 	def initialize(name, variables)
 		debugTemplate "DsiTemplate #{name}, #{variables.size} variables"
 		@valid = true
 		@name = name
-		puts "((( DsiStateTemplate.initialize variables size #{variables.size}, #{variables.to_s}"
+		puts "((( DsiContextTemplate.initialize variables size #{variables.size}, #{variables.to_s}"
 		@variables = cloneVariableList(variables)
-		puts "))) DsiStateTemplate.initialize variables size #{@variables.size}, #{@variables.to_s}"
+		puts "))) DsiContextTemplate.initialize variables size #{@variables.size}, #{@variables.to_s}"
 		#debugTemplate "DsiTemplate #{name}, #{@variables.size} variables"
 	end
 	
@@ -102,31 +135,51 @@ class DsiStateTemplate
 		@valid = false
 	end
 	
-	def cloneVariableList(variablesIn)
+	def cloneDspVariableList(variablesIn)
+		puts "{{{ DsiContextTemplate.cloneDspVariableList variables size #{variablesIn.size}, #{variablesIn.to_s}"
 		newVariableList = Array.new
-		
 		variablesIn.each do |v|
-			debugState "cloneVariableList cloning  #{v.getName}"
-			if v.getValue.is_a?(DsiNumberValue)
-				debugState "cloneVariableList DsiNumberValue #{v.getName}"
-				value = DsiNumberValue.new(v.getValue)
-			elsif v.getValue.is_a?(DsiStringValue)
-				debugState "cloneVariableList DsiStringValue #{v.getName}"
-				value = DsiStringValue.new(v.getValue)
-			elsif v.getValue.is_a?(DsiBoolValue)
-				value = DsiBoolValue.new(v.getValue)
-			elsif v.getValue.is_a?(DsiEnumValue)
-				value = DsiEnumValue.new(v.getValue)
-			elsif v.getValue.is_a?(DsiFunctionReferenceValue)
-				value = DsiFunctionReferenceValue.new(v.getValue)
-			elsif v.getValue.is_a?(DsiClassValue)
-				value = DsiClassValue.new(v.getValue)
-			elsif v.getValue.is_a?(DsiValue)
-				value = DsiValue.new(v.getValue)
-			else
-				value = nil
+			value = LoaderState.translateDspValue
+			if not value == nil
+				debugState "cloneDspVariableList cloning #{v.getName} #{value.getValue.to_s}"
+				newVariable = DsiVariable.new(v.getName, value)
+				debugState "cloneDspVariableList New variable #{newVariable.getName} #{newVariable.getValue.to_s}"
+				newVariableList.push(newVariable)
+				debugState "cloneDspVariableList newVariableList () size #{newVariableList.size}"
 			end
+		end
+		puts "}}} DsiContextTemplate.cloneDspVariableList variables size #{newVariableList.size}, #{newVariableList.to_s}"
+		#debugState "cloneDspVariableList newVariableList size #{newVariableList.size}"
+		newVariableList
+	end
+	
+	#def cloneDsiVariableList(variablesIn)
+	#	puts "{{{ DsiContextTemplate.cloneDsiVariableList variables size #{variablesIn.size}, #{variablesIn.to_s}"
+	#	newVariableList = Array.new
+	#	variablesIn.each do |v|
+	#		value = LoaderState.cloneDsiValue
+	#		if not value == nil
+	#			debugState "cloneDsiVariableList cloning #{v.getName} #{value.getValue.to_s}"
+	#			newVariable = DsiVariable.new(v.getName, value)
+	#			debugState "cloneDsiVariableList New variable #{newVariable.getName} #{newVariable.getValue.to_s}"
+	#			newVariableList.push(newVariable)
+	#			debugState "cloneDsiVariableList newVariableList () size #{newVariableList.size}"
+	#		end
+	#	end
+	#	puts "}}} DsiContextTemplate.cloneDsiVariableList variables size #{newVariableList.size}, #{newVariableList.to_s}"
+	#	#debugState "cloneDsiVariableList newVariableList size #{newVariableList.size}"
+	#	newVariableList
+	#end
+	
+	def cloneVariableList(variablesIn) 
+		# dsi
+		puts "{{{ DsiContextTemplate.cloneVariableList variables size #{variablesIn.size}, #{variablesIn.to_s}"
+		newVariableList = Array.new
 
+		variablesIn.each do |v|
+			value = nil
+			debugState "cloneVariableList cloning  #{v.getValue}"
+			value = self.class.cloneDsiValue(v.getValue)
 			if not value == nil
 				debugState "cloneVariableList cloning #{v.getName} #{value.getValue.getValue.to_s}"
 				newVariable = DsiVariable.new(v.getName, value)
@@ -136,14 +189,18 @@ class DsiStateTemplate
 			end
 		end
 		
-		debugState "cloneVariableList newVariableList size #{newVariableList.size}"
+		puts "}}} DsiContextTemplate.cloneVariableList variables size #{newVariableList.size}, #{newVariableList.to_s}"
+		#debugState "cloneVariableList newVariableList size #{newVariableList.size}"
 		newVariableList
+	end
+	
+	def cloneDsiVariables(variables)	
 	end
 end
 
 # DsiGlobalTemplate ####################################################################################################
 
-class DsiGlobalTemplate < DsiStateTemplate
+class DsiGlobalTemplate < DsiContextTemplate
 	# Allowed in the global template are use, variable declaration, enum declaration, class declaration, function declaration
 	def initialize(variables, enums, classTemplates, functionTemplates)
 		debugTemplate "DsiGlobalTemplate"
@@ -202,7 +259,7 @@ end
 
 # DsiClassTemplate ####################################################################################################
 
-class DsiClassTemplate < DsiStateTemplate
+class DsiClassTemplate < DsiContextTemplate
 	def initialize(name, baseClass, variables, functionTemplates)
 		debugTemplate "DsiClassTemplate #{name} #{baseClass}"
 		super(name, variables)
@@ -227,7 +284,8 @@ end
 
 # DsiFunctionTemplate ####################################################################################################
 
-class DsiFunctionTemplate < DsiStateTemplate
+class DsiFunctionTemplate < DsiContextTemplate
+
 	def initialize(name, paramNames, variables, instructions)
 		debugTemplate "DsiFunctionTemplate #{name}"
 		puts "DsiFunctionTemplate.initialize variables size #{variables.size}, #{variables.to_s}"
