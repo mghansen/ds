@@ -1,4 +1,4 @@
-$verboseElements = false
+$verboseElements = true
 $indentationLevel = 2
 
 def dbgElements text
@@ -69,9 +69,9 @@ class DspObject
 		ret
 	end
 	
-	def to_s
-		"X"
-	end
+	#def to_s
+	#	"X"
+	#end
 	
 	def format(indent)
 		"#{prefix(indent)}X\n"
@@ -202,10 +202,6 @@ class DspStatement < DspObject
 			element = DspExpression.parse(tokens)
 		end
 		element
-	end
-	
-	def to_s
-		"X"
 	end
 end
 
@@ -637,7 +633,21 @@ class DspNumber < DspConstant
 		else
 			@value = value.to_i
 		end
+		dbgElements "DspNumber.init value=#{@value}"
 		consume 1
+	end
+	def self.makeDspNumberFromValue(value)
+		dbgElements "DspNumber.makeDspNumberFromValue value=#{value}"
+		item = DspNumber.new("0")
+		item.setValue(value)
+		dbgElements "DspNumber.makeDspNumberFromValue newvalue=#{item.getValue}"
+		item
+	end
+	def getValue
+		@value
+	end
+	def setValue(value)
+		@value = value
 	end
 	def self.parse tokens
 		dbgElements "DspNumber.parse"

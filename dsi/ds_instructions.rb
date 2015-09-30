@@ -14,6 +14,7 @@ class DsiInstruction
 		debugInstructions "DsiInstruction"
 	end
 	def evaluate(state)
+		debugInstructions "DsiInstruction.evaluate"
 	end
 end
 
@@ -21,11 +22,12 @@ end
 
 class DsiAssignment < DsiInstruction
 	def initialize(lValue, operator, rValue)
-		debugInstructions "DsiAssignment #{lValue} #{operator}"	
+		debugInstructions "DsiAssignment.initialize #{lValue} #{operator}"	
 		super()
 		@lValue = lValue
 		@operator = operator # "=", "+=", "-=", "*=", "/="
 		@rValue = rValue
+		debugInstructions "DsiAssignment.initialize rValue #{@rValue.to_s}}"	
 	end
 	def evaluate(state)
 		debugInstructions "DsiAssignment.evaluate #{@lValue} #{@operator}"
@@ -35,6 +37,7 @@ class DsiAssignment < DsiInstruction
 		
 		if not lValue == nil
 			debugInstructions "DsiAssignment.evaluate #{lValue.getName}"
+			puts @rValue.to_s
 			rValue = @rValue.evaluate(state)
 			debugInstructions "DsiAssignment.evaluate rValue #{rValue.getValue}"
 
@@ -194,6 +197,9 @@ class DsiValue < DsiExpression
 		debugInstructions "DsiValue.evaluate #{@value}"
 		DsiValue.new(@value)
 	end
+	def to_s
+		"#{@value.to_s}"
+	end
 end	
 
 class DsiNumberValue < DsiValue
@@ -204,6 +210,9 @@ class DsiNumberValue < DsiValue
 	def evaluate(state)
 		debugInstructions "DsiNumberValue.evaluate #{@value}"
 		super
+	end
+	def to_s
+		"#{@value.to_s}"
 	end
 end
 
@@ -216,6 +225,9 @@ class DsiStringValue < DsiValue
 		debugInstructions "DsiStringValue.evaluate #{@value}"
 		super
 	end
+	def to_s
+		"'#{@value.to_s}'"
+	end
 end
 
 class DsiBoolValue < DsiValue
@@ -226,6 +238,9 @@ class DsiBoolValue < DsiValue
 	def evaluate(state)
 		debugInstructions "DsiBoolValue.evaluate #{@value}"
 		super
+	end
+	def to_s
+		@value ? "TRUE" : "FALSE"
 	end
 end
 
