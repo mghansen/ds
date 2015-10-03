@@ -6,7 +6,7 @@
 ###
 
 require_relative 'ds_loader'
-require_relative 'ds_templates'
+require_relative 'ds_contexts'
 require_relative 'ds_instructions'
 
 # Main ============================================================
@@ -21,8 +21,8 @@ def dsiMain
 	loader = Loader.new()
 	loader.loadFile("#{ARGV[0]}")
 	
-	template = loader.getGlobalTemplate
-	template.run
+	context = loader.getGlobalContext
+	context.run
 
 end
 

@@ -12,7 +12,7 @@
     <Project name="dsi">
         <File name="dsi\dsi.rb" />
         <File name="dsi\ds_loader.rb" />
+        <File name="dsi\ds_contexts.rb" />
         <File name="dsi\ds_instructions.rb" />
-        <File name="dsi\ds_templates.rb" />
     </Project>
 </NotepadPlus>

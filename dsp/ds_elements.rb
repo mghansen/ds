@@ -1,11 +1,12 @@
-$verboseElements = true
 $indentationLevel = 2
 
-def dbgElements text
-	puts text if $verboseElements
+$logForElements = false
+
+def logElements text
+	puts (". " + text) if $logForElements
 end
 
-def dbgElementsTokens(text, tokens)
+def logElementsTokens(text, tokens)
 	if $verboseElements
 		if tokens == nil or tokens.size == 0
 			puts "#{text} []"
@@ -56,7 +57,7 @@ class DspObject
 	end
 	
 	def self.parse tokens 
-		dbgElements "Default DspObject parse"
+		logElements "Default DspObject parse"
 		invalid()
 	end
 	
@@ -109,16 +110,16 @@ class DspDocument < DspObject
 	end
 	
 	def self.parse tokens, filename
-		dbgElementsTokens "DspDocument.parse", tokens
+		logElementsTokens "DspDocument.parse", tokens
 		statements = Array.new
 		consumed = 0
 		while (consumed < tokens.size - 1) do
 			element = DspStatement.parse(tokens[consumed..-1])
 			if element == nil
-				dbgElementsTokens "DspDocument.parse", tokens
+				logElementsTokens "DspDocument.parse", tokens
 				return
 			elsif !element.isValid
-				dbgElementsTokens "DspDocument.parse", tokens
+				logElementsTokens "DspDocument.parse", tokens
 				return
 			else
 				statements.push(element)
@@ -142,7 +143,7 @@ end
 
 class DspName < DspObject
 	def initialize (name)
-		#dbgElements "DspName.initialize " + name
+		#logElements "DspName.initialize " + name
 		super()
 		@name = name
 		consume 1
@@ -151,7 +152,7 @@ class DspName < DspObject
 		@name
 	end
 	def self.parse tokens
-		dbgElementsTokens "DspName.parse", tokens
+		logElementsTokens "DspName.parse", tokens
 		element = DspObject.isName(tokens[0]) ? DspName.new(tokens[0]) : invalid()
 		element
 	end
@@ -164,7 +165,7 @@ end
 
 class DspQName < DspName
 	def initialize (name)
-		#dbgElements "DspQName.initialize " + name
+		#logElements "DspQName.initialize " + name
 		super
 		@name = name
 	end
@@ -172,7 +173,7 @@ class DspQName < DspName
 		@name
 	end
 	def self.parse tokens
-		dbgElementsTokens "DspQName.parse", tokens
+		logElementsTokens "DspQName.parse", tokens
 		element = DspObject.isQName(tokens[0]) ? DspQName.new(tokens[0]) : invalid()
 		element
 	end
@@ -188,7 +189,7 @@ class DspStatement < DspObject
 		super
 	end
 	def self.parse tokens	
-		dbgElementsTokens "DspStatement.parse", tokens
+		logElementsTokens "DspStatement.parse", tokens
 		
 		if tokens[0].eql?("use")
 			element = DspUse.parse(tokens)
@@ -222,8 +223,8 @@ class DspBlock < DspObject
 	end
 	
 	def self.parse(tokens, finalizingTokens)
-		#puts "DspBlock #{tokens.size} tokens"
-		dbgElementsTokens "DspBlock.parse", tokens
+		#logElements "DspBlock #{tokens.size} tokens"
+		logElementsTokens "DspBlock.parse", tokens
 		statements = Array.new
 		finalizingToken = ""
 		i = 0
@@ -266,7 +267,7 @@ class DspUse < DspStatement
 		@filename
 	end
 	def self.parse tokens
-		dbgElementsTokens "DspUse.parse", tokens
+		logElementsTokens "DspUse.parse", tokens
 		if tokens[0].eql? "use" and tokens.size > 1
 			element = DspUse.new(tokens[1])
 		end
@@ -297,7 +298,7 @@ class DspAssignment < DspStatement
 		@rValue
 	end
 	def self.parse tokens
-		dbgElementsTokens "DspAssignment.parse", tokens
+		logElementsTokens "DspAssignment.parse", tokens
 		rValue = DspExpression.parse(tokens[2..-1])
 		if rValue.isValid
 			element = DspAssignment.new(tokens[0], tokens[1], rValue)
@@ -321,7 +322,7 @@ class DspDeclaration < DspStatement
 		super
 	end
 	def self.parse tokens
-		dbgElementsTokens "DspDeclaration.parse", tokens
+		logElementsTokens "DspDeclaration.parse", tokens
 		element = invalid()
 		if tokens[0].eql?("enum") and DspObject.isName(tokens[1]) and DspObject.isName(tokens[2])
 			element = DspEnumDeclaration.parse(tokens)
@@ -349,7 +350,7 @@ class DspVariableDeclaration < DspDeclaration
 		@name
 	end
 	def self.parse tokens
-		dbgElementsTokens "DspDeclaration.parse", tokens
+		logElementsTokens "DspDeclaration.parse", tokens
 		if tokens[0].eql?("var") and DspObject.isName(tokens[1])
 			element = DspVariableDeclaration.new(tokens[1])
 		else
@@ -380,7 +381,7 @@ class DspEnumDeclaration < DspDeclaration
 	end
 
 	def self.parse tokens
-		dbgElementsTokens "DspEnumDeclaration.parse", tokens
+		logElementsTokens "DspEnumDeclaration.parse", tokens
 		if tokens[0].eql?("enum") and DspObject.isName(tokens[1])
 			name = tokens[1]
 			values = Array.new
@@ -448,7 +449,7 @@ class DspClassDeclaration < DspDeclaration
 	end
 	
 	def self.parse tokens
-		dbgElements "DspClassDeclaration.parse"
+		logElements "DspClassDeclaration.parse"
 		if tokens[0].eql?("class") and DspObject.isName(tokens[1])
 			name = tokens[1]
 			consumed = 2
@@ -501,7 +502,7 @@ class DspFunctionDeclaration < DspDeclaration
 	end
 	
 	def self.parse tokens
-		dbgElementsTokens "DspFunctionDeclaration.parse", tokens
+		logElementsTokens "DspFunctionDeclaration.parse", tokens
 		if(tokens[0].eql?("func") and DspObject.isName(tokens[1]) and tokens[2].eql?("("))
 			name = tokens[1]
 			params = Array.new
@@ -509,24 +510,24 @@ class DspFunctionDeclaration < DspDeclaration
 
 			if tokens[consumed].eql?(")")
 				consumed += 1
-				# puts "NO PARAMS consumed=#{consumed}"
+				# logElements "NO PARAMS consumed=#{consumed}"
 			else
-				# dbgElementsTokens "DspFunctionDeclaration.parse params start", tokens[consumed..-1]
+				# logElementsTokens "DspFunctionDeclaration.parse params start", tokens[consumed..-1]
 				while not tokens[consumed - 1].eql?(")") do
-					# dbgElementsTokens "DspFunctionDeclaration.parse params", tokens[consumed..-1]
+					# logElementsTokens "DspFunctionDeclaration.parse params", tokens[consumed..-1]
 					if DspObject.isName(tokens[consumed]) and ([ ",", ")" ].include?(tokens[consumed + 1]))
 						params.push(tokens[consumed])
-						# puts "PARAMETER #{tokens[consumed]}"
+						# logElements "PARAMETER #{tokens[consumed]}"
 						consumed += 2
 					else
-						puts "DspFunctionDeclaration.parse error reading parameters"
+						logElements "DspFunctionDeclaration.parse error reading parameters"
 						break
 					end
 				end
-				# puts "END LOOP consumed=#{consumed}"
+				# logElements "END LOOP consumed=#{consumed}"
 			end
 
-			# dbgElementsTokens "DspFunctionDeclaration.parse starting block", tokens[consumed..-1]
+			# logElementsTokens "DspFunctionDeclaration.parse starting block", tokens[consumed..-1]
 			block = DspBlock.parse(tokens[consumed..-1], [ "end" ])
 			if block.isValid
 				element = DspFunctionDeclaration.new(name, params, block)
@@ -561,10 +562,10 @@ class DspExpression < DspStatement
 		super
 	end
 	def self.parse tokens
-		dbgElementsTokens "DspExpression.parse", tokens
+		logElementsTokens "DspExpression.parse", tokens
 		
 		if tokens[0].eql?("(")
-			# dbgElements "EXPRESSION GROUPED EXPRESSION"
+			# logElements "EXPRESSION GROUPED EXPRESSION"
 			element = DspExpression.parse(tokens[1..-1])
 			if tokens[element.getConsumed + 1].eql?(")")
 				element.consume(element.getConsumed + 2)
@@ -572,34 +573,34 @@ class DspExpression < DspStatement
 				element = invalid()
 			end
 		elsif DspObject.isNumber(tokens[0])
-			dbgElements "EXPRESSION NUMBER"
+			logElements "EXPRESSION NUMBER"
 			element = DspNumber.parse(tokens)
 		elsif /^\"/ =~ tokens[0]
-			# dbgElements "EXPRESSION STRING"
+			# logElements "EXPRESSION STRING"
 			element = DspString.parse(tokens)	
 		elsif /^true|false$/ =~ tokens[0]
-			# dbgElements "EXPRESSION BOOL"
+			# logElements "EXPRESSION BOOL"
 			element = DspBool.parse(tokens)
 		elsif tokens[0].eql?("nil")
-			dbgElements "NIL"
+			logElements "NIL"
 		elsif [ "return", "break", "continue" ].include?(tokens[0])
-			# dbgElements "RESERVED FUNCTION CALL"
+			# logElements "RESERVED FUNCTION CALL"
 			element = DspReservedFunction.parse(tokens)
 		elsif DspObject.isQName(tokens[0]) and not @@keywords.include?(tokens[0])
 			if tokens[1].eql?("(")
-				# dbgElements "EXPRESSION FUNCTION CALL"
+				# logElements "EXPRESSION FUNCTION CALL"
 				element = DspFunctionCall.parse(tokens)
 			else
-	 			# dbgElements "EXPRESSION VARIABLE NAME"
+	 			# logElements "EXPRESSION VARIABLE NAME"
 				element = DspQName.parse(tokens)
 			end
 		else
-			# dbgElements "EXPRESSION OTHER"
+			# logElements "EXPRESSION OTHER"
 			element = invalid()
 		end
 		
 		if element.isValid and DspOperation.isOperator(tokens[element.getConsumed])
-			# dbgElements "EXPRESSION OPERATION"
+			# logElements "EXPRESSION OPERATION"
 			element = DspOperation.parse(tokens, element)
 		end
 		
@@ -633,14 +634,14 @@ class DspNumber < DspConstant
 		else
 			@value = value.to_i
 		end
-		dbgElements "DspNumber.init value=#{@value}"
+		logElements "DspNumber.init value=#{@value}"
 		consume 1
 	end
 	def self.makeDspNumberFromValue(value)
-		dbgElements "DspNumber.makeDspNumberFromValue value=#{value}"
+		logElements "DspNumber.makeDspNumberFromValue value=#{value}"
 		item = DspNumber.new("0")
 		item.setValue(value)
-		dbgElements "DspNumber.makeDspNumberFromValue newvalue=#{item.getValue}"
+		logElements "DspNumber.makeDspNumberFromValue newvalue=#{item.getValue}"
 		item
 	end
 	def getValue
@@ -650,7 +651,7 @@ class DspNumber < DspConstant
 		@value = value
 	end
 	def self.parse tokens
-		dbgElements "DspNumber.parse"
+		logElements "DspNumber.parse"
 		element = DspNumber.new(tokens[0])
 		element
 	end
@@ -711,7 +712,7 @@ class DspOperation < DspExpression
 		@secondExpression
 	end
 	def self.parse(tokens, firstExpression)
-		dbgElementsTokens "DspOperation.parse", tokens
+		logElementsTokens "DspOperation.parse", tokens
 		operator = tokens[firstExpression.getConsumed]
 		if DspOperation.isOperator(operator)
 			secondExpression = DspExpression.parse(tokens[(firstExpression.getConsumed + 1)..-1])
@@ -744,7 +745,7 @@ end
 
 class DspFunctionCall < DspExpression
 	def initialize(name, tokens)
-		# dbgElements "DspFunctionCall.initialize"
+		# logElements "DspFunctionCall.initialize"
 		# TODO: Put parsing logic into parse and not in initialize at all
 		super()
 		@name = name
@@ -776,7 +777,7 @@ class DspFunctionCall < DspExpression
 		@params
 	end
 	def self.parse tokens
-		dbgElementsTokens "DspFunctionCall.parse", tokens
+		logElementsTokens "DspFunctionCall.parse", tokens
 		if [ "return", "break", "continue" ].include?(tokens[0])
 			element = DspReservedFunction(tokens)
 		elsif not DspObject.isQName(tokens[0]) or @@keywords.include?(tokens[0]) or not tokens[1].eql?("(")
@@ -820,7 +821,7 @@ class DspReservedFunction < DspFunctionCall
 		@expression
 	end
 	def self.parse tokens
-		dbgElementsTokens "DspReservedFunction.parse", tokens
+		logElementsTokens "DspReservedFunction.parse", tokens
 		if [ "return", "break", "continue" ].include?(tokens[0])
 			if tokens[0].eql?("return")
 				expression = DspExpression.parse(tokens[1..-1])
@@ -849,7 +850,7 @@ class DspControl < DspStatement
 		super
 	end
 	def self.parse tokens
-		dbgElementsTokens "DspControl.parse", tokens
+		logElementsTokens "DspControl.parse", tokens
 		if tokens[0].eql?("if")
 			element = DspIf.parse(tokens)
 		elsif tokens[0].eql?("for") and DspObject.isName(tokens[1])
@@ -882,7 +883,7 @@ class DspIf < DspControl
 		@conditions
 	end
 	def self.parse tokens
-		dbgElementsTokens "DspIf.parse", tokens
+		logElementsTokens "DspIf.parse", tokens
 		conditions = Array.new
 		if tokens[0].eql?("if") and tokens[1].eql?("(")
 			consumed = 0
@@ -956,7 +957,7 @@ class DspCondition < DspObject
 		block.getStatements
 	end
 	def self.parse tokens
-		dbgElementsTokens "DspCondition.parse", tokens
+		logElementsTokens "DspCondition.parse", tokens
 		isElse = tokens[0].eql?("else")
 		if (["if", "elsif"].include?(tokens[0]) and tokens[1].eql?("(")) or isElse
 			if isElse
@@ -1010,7 +1011,7 @@ class DspFor < DspControl
 		@block.getStatements
 	end
 	def self.parse tokens
-		dbgElementsTokens "DspFor.parse", tokens
+		logElementsTokens "DspFor.parse", tokens
 		if tokens[0].eql?("for") and DspObject.isName(tokens[1])
 			if tokens[2].eql?("in") and DspObject.isQName(tokens[3])
 				element = DspForIn.parse(tokens)
@@ -1038,7 +1039,7 @@ class DspForIn < DspFor
 		@set
 	end
 	def self.parse tokens
-		dbgElementsTokens "DspForIn.parse", tokens
+		logElementsTokens "DspForIn.parse", tokens
 		variant = tokens[1]
 		set = tokens[3]
 		block = DspBlock.parse(tokens[4..-1], [ "end" ])
@@ -1073,7 +1074,7 @@ class DspForFrom < DspFor
 		@endExpression
 	end
 	def self.parse tokens
-		dbgElementsTokens "DspForFrom.parse", tokens
+		logElementsTokens "DspForFrom.parse", tokens
 		variant = tokens[1]
 		consumed = 3
 		startExpression = DspExpression.parse(tokens[consumed..-1])
@@ -1122,7 +1123,7 @@ class DspWhile < DspControl
 		@block.getStatements
 	end
 	def self.parse tokens
-		dbgElementsTokens "DspWhile.parse", tokens
+		logElementsTokens "DspWhile.parse", tokens
 		if tokens[0].eql?("while") and tokens[1].eql?("(")
 			consumed = 2
 			expression = DspExpression.parse(tokens[2..-1])
@@ -1167,7 +1168,7 @@ class DspDo < DspControl
 		@block.getStatements
 	end
 	def self.parse tokens
-		dbgElementsTokens "DspDo.parse", tokens
+		logElementsTokens "DspDo.parse", tokens
 		if tokens[0].eql?("do")
 			consumed = 1
 			block = DspBlock.parse(tokens[consumed..-1], [ "while" ])
@@ -1216,7 +1217,7 @@ class DspSwitch < DspControl
 		@cases
 	end
 	def self.parse tokens
-		dbgElementsTokens "DspSwitch.parse", tokens
+		logElementsTokens "DspSwitch.parse", tokens
 		if tokens[0].eql?("switch") and tokens[1].eql?("(")
 			consumed = 2
 			expression = DspExpression.parse(tokens[consumed..-1])
@@ -1271,7 +1272,7 @@ class DspCase < DspObject
 		@block.getStatements
 	end
 	def self.parse tokens
-		dbgElementsTokens "DspCase.parse", tokens
+		logElementsTokens "DspCase.parse", tokens
 		if tokens[0].eql?("case")
 			isDefault = false
 			element = nil

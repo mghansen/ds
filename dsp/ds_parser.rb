@@ -2,10 +2,10 @@ require 'forwardable'
 require_relative 'ds_tokenizer'
 require_relative 'ds_elements'
 
-$verboseParser = true
+$logForParser = false
 
-def dbgParser text
-	puts text if $verboseParser
+def logParser text
+	puts text if $logForParser
 end
 
 # Parser ####################################################################################################
@@ -36,9 +36,9 @@ class Parser
 		@document = DspDocument.parse(tokens, @input_filename)
 		if @document.isValid
 			indent = 0
-			dbgParser "#{@document.format(indent)}"
+			logParser "#{@document.format(indent)}"
 		else
-			dbgParser "Document \"#{@filename}\" could not be parsed"
+			logParser "Document \"#{@filename}\" could not be parsed"
 		end
 	end
 	

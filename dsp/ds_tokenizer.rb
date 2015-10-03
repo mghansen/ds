@@ -1,9 +1,9 @@
 require 'forwardable'
 
-$verboseTokenizer = false
+$logForLexer = false
 
-def dbg text
-	puts text if $verboseTokenizer
+def logLexer text
+	puts text if $logForLexer
 end
 
 # Tokenizer ####################################################################################################
@@ -46,10 +46,10 @@ class Tokenizer
 	def tokenizeLine(line) 
 	
 		return if @ignoreAll
-		dbg "inMultiLineComment at start of function" if getInMultiLineComment()
+		logLexer "inMultiLineComment at start of function" if getInMultiLineComment()
 		return if line.size == 0
 		
-		dbg ":::::: #{line}"
+		logLexer ":::::: #{line}"
 		
 		# Get array of CharDetails
 		chars = Array.new
@@ -74,7 +74,7 @@ class Tokenizer
 			
 			if numCharsToSkip > 0
 				numCharsToSkip -= 1
-				dbg "\n"
+				logLexer "\n"
 				next
 			end
 
@@ -92,25 +92,25 @@ class Tokenizer
 			if state == @@stateInComment
 				if getInMultiLineComment()
 					if CharDetails.isMultiLineCommentEnd(combined)
-						dbg "case ending multi line comment"
+						logLexer "case ending multi line comment"
 						setInMultiLineComment(false)
 						state = @@stateReady
 						numCharsToSkip = 1
 					else
-						dbg "case not yet comment end"
+						logLexer "case not yet comment end"
 					end
 				else
-					dbg "case in comment but not multi-line"
+					logLexer "case in comment but not multi-line"
 				end
 				
 			elsif state == @@stateReady
 				if not item.isWhitespace
 					if item.isQuote
-						dbg "case starting new token and start with quotes"
+						logLexer "case starting new token and start with quotes"
 						state = @@stateInQuotes
 						token = ""
 					elsif CharDetails.isDouble(combined)
-						dbg "case starting new token and start with double"
+						logLexer "case starting new token and start with double"
 						submissions.push combined
 						token = ""
 						numCharsToSkip = 1
@@ -118,14 +118,14 @@ class Tokenizer
 						state = @@stateInToken
 						token = item.char
 						if item.isDigit or item.char.eql? '-' # -= already handled by isDouble
-							dbg "case starting new token and it's a number"
+							logLexer "case starting new token and it's a number"
 							inNumber = true
 						else
-							dbg "case starting new token and it could be alpha, punctuation, or other"
+							logLexer "case starting new token and it could be alpha, punctuation, or other"
 						end
 					end
 				else
-					dbg "case whitespace"
+					logLexer "case whitespace"
 					if token.size > 0
 						submissions.push token
 						token = ""
@@ -133,32 +133,32 @@ class Tokenizer
 				end
 				
 			elsif state == @@stateInQuotes
-				dbg "case already inside quotes"
+				logLexer "case already inside quotes"
 				if item.isQuote or "\r\n".include?(item.char) # break on newline"
 					if(token.size > 0)
-						dbg "case breaking quote on close quote or newline"
+						logLexer "case breaking quote on close quote or newline"
 						submissions.push '"' + token + '"'
 						token = ""
 					else
-						dbg "case breaking quote on close quote or newline but the string was empty"
+						logLexer "case breaking quote on close quote or newline but the string was empty"
 					end
 					state = @@stateReady
 				else
-					dbg "case inside quotes and we're still going"
+					logLexer "case inside quotes and we're still going"
 					token << item.char
 				end
 				
 			elsif state == @@stateInToken
 				if item.isWhitespace
-					dbg "case this token just ended on whitespace"
+					logLexer "case this token just ended on whitespace"
 					submissions.push token
 					token = ""
 				elsif item.isAlpha
 					if prev.isAlpha or (prev.isDigit and not inNumber)
-						dbg "case alpha continuation of an alphanumeric"
+						logLexer "case alpha continuation of an alphanumeric"
 						token << item.char
 					else
-						dbg "case alpha breaking token after other"
+						logLexer "case alpha breaking token after other"
 						submissions.push token
 						token = item.char
 						nextState = @@stateInToken
@@ -166,57 +166,57 @@ class Tokenizer
 				elsif item.isDigit
 					if not inNumber
 						if prev.isAlpha or prev.isDigit
-							dbg "case digit continuation of an alphanumeric"
+							logLexer "case digit continuation of an alphanumeric"
 							token << item.char
 						else
-							dbg "case digit breaking token after other"
+							logLexer "case digit breaking token after other"
 							submissions.push token
 							token = item.char
 							nextState = @@stateInToken
 						end
 					else
-						dbg "case digit continuing a number"
+						logLexer "case digit continuing a number"
 						token << item.char
 					end
 				elsif item.isQuote
-					dbg "case open quote inside of a token"
+					logLexer "case open quote inside of a token"
 					submissions.push token
 					token = ""
 					setOpenQuoteFlag = true
 				elsif item.isPunctuation or item.isOther
 					if item.char.eql? '.' and inNumber and not seenDecimalPoint and prev.isDigit
-						dbg "case first decimal point in number"
+						logLexer "case first decimal point in number"
 						token << item.char
 						seenDecimalPoint = true
 					elsif CharDetails.isDouble(combined)
-						dbg "case double breaks last token"
+						logLexer "case double breaks last token"
 						submissions.push token
 						submissions.push combined
 						numCharsToSkip = 1
 						token = ""						
 					else
-						dbg "case other breaks last token"
+						logLexer "case other breaks last token"
 						submissions.push token
 						submissions.push item.char
 						token = ""
 					end
 				else
-					dbg "case state is stateInToken but we sould never reach this case"
+					logLexer "case state is stateInToken but we sould never reach this case"
 				end
 				
 			else
-				dbg "case unknown state"
+				logLexer "case unknown state"
 			end #state
 			
 			submissions.each do |s|
 				if s.size > 0
 					if CharDetails.isSingleLineCommentStart s
-						dbg "     :case start single line comment\n"
+						logLexer "     :case start single line comment\n"
 						#printf"\n\n"
 						return # no need to clear token or set state to @stateIsComment
 					elsif CharDetails.isMultiLineCommentStart s
 						setInMultiLineComment(true)
-						dbg "     :case start multi line comment"
+						logLexer "     :case start multi line comment"
 						state = @@stateInComment
 						numCharsToSkip = 1
 					else
@@ -244,7 +244,7 @@ class Tokenizer
 
 		end # each
 		
-		dbg "inMultiLineComment at end of function" if getInMultiLineComment()
+		logLexer "inMultiLineComment at end of function" if getInMultiLineComment()
 	end
 	
 	def showTokens()
