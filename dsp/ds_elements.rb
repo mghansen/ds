@@ -1,13 +1,13 @@
-$indentationLevel = 2
+$indentationLevel = 4
 
 $logForElements = false
 
 def logElements text
-	puts (". " + text) if $logForElements
+	puts ("E " + text) if $logForElements
 end
 
 def logElementsTokens(text, tokens)
-	if $verboseElements
+	if $logForElements
 		if tokens == nil or tokens.size == 0
 			puts "#{text} []"
 		else
@@ -685,7 +685,8 @@ class DspBool < DspConstant
 		element = DspBool.new(tokens[0].eql?("true"))
 	end
 	def format(indent)
-		"#{prefix(indent)}#{@value.to_s}\n"
+		#"#{prefix(indent)}#{@value.to_s}\n"
+		"#{prefix(indent)}#{@value ? "TRUE" : "FALSE"}\n"
 	end
 end
 
@@ -936,6 +937,7 @@ end
 
 class DspCondition < DspObject
 	def initialize(conditionType, expression, block)
+		logElements "DspCondition.initialize"
 		super()
 		@conditionType = conditionType
 		@expression = expression
@@ -954,7 +956,7 @@ class DspCondition < DspObject
 		@expression
 	end
 	def getStatements
-		block.getStatements
+		@block.getStatements
 	end
 	def self.parse tokens
 		logElementsTokens "DspCondition.parse", tokens
@@ -989,7 +991,8 @@ class DspCondition < DspObject
 		element
 	end
 	def format(indent)
-		s = "#{prefix(indent)}#{@conditionType}\n"
+		s =  "#{prefix(indent)}#{@conditionType}\n"
+		s << "#{@expression.format(indent)}"
 		s << "#{@block.format(indent + 1)}"
 		s
 	end	

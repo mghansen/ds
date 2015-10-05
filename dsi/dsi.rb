@@ -20,6 +20,7 @@ def dsiMain
 	
 	loader = Loader.new()
 	loader.loadFile("#{ARGV[0]}")
+	puts "==================================== LOAD COMPLETE ===================================="
 	
 	context = loader.getGlobalContext
 	context.run

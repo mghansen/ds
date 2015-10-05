@@ -5,7 +5,7 @@ require_relative '../dsp/ds_elements'
 require_relative 'ds_contexts'
 require_relative 'ds_instructions'
 
-$logForLoader = false
+$logForLoader = true
 
 def logLoader text
 	puts ("L " + text) if $logForLoader
@@ -327,7 +327,7 @@ class Loader
 				else
 					expression = processExpression(statement.getRValue, loaderState)
 				end
-				logLoader "expression rValue #{expression.getValue}"
+				logLoader "expression rValue #{expression.to_s}"
 				#dsiRValue = LoaderState.translateDspValue(processConstant(s.getRValue))
 				#globalLoaderState.addDspVariableIntoDsi(s.getLValue, dsiRValue)
 				item = DsiAssignment.new(statement.getLValue, statement.getOperator, expression) # This is pushing a dps value but it should be dsi
@@ -378,7 +378,7 @@ class Loader
 	def processIf(statement, loaderState)
 		conditions = Array.new
 		statement.getConditions.each do |c|
-			condition = processCondition(c, processExpression)
+			condition = processCondition(c, loaderState)
 			conditions.push(condition)
 		end
 		item = DsiIf.new(conditions)
@@ -474,6 +474,7 @@ class Loader
 			item = LoaderState.translateDspValue(expression)
 			
 		elsif expression.is_a?(DspQName)
+			logLoader "processExpression DspQName"
 			item = DsiVariable.new(expression.getName)
 
 		else

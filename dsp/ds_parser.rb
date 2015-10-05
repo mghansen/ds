@@ -36,7 +36,8 @@ class Parser
 		@document = DspDocument.parse(tokens, @input_filename)
 		if @document.isValid
 			indent = 0
-			logParser "#{@document.format(indent)}"
+			puts "Parsed file:"
+			puts "#{@document.format(indent)}"
 		else
 			logParser "Document \"#{@filename}\" could not be parsed"
 		end

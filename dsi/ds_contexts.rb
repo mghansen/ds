@@ -19,9 +19,9 @@ class DsiRuntimeState
 	def initialize(currentScopeName, variables, parentState)
 		@currentScopeName = currentScopeName
 		@variables = variables
-		@parentState= parentState
+		@parentState = parentState
 		@returnValue = nil # ?
-		logState "DsiRuntimeState.initialize variables.size #{variables.size}"
+		#logState "DsiRuntimeState.initialize variables.size #{variables.size}"
 		logState "DsiRuntimeState.initialize variables=#{variables.to_s}"
 		# TODO: deep copy of variables, default values
 		
@@ -33,9 +33,9 @@ class DsiRuntimeState
 		@variables
 	end
 	def getVariable(name)
+		logState "DSIRUNTIMESTATE.getVariable #{name}"
 		var = nil
 		@variables.each do |v|
-			logState "DsiRuntimeState.getVariable #{v.getName}"
 			if v.getName.eql?(name)
 				var = v
 				break
@@ -248,7 +248,7 @@ end
 class DsiFunctionContext < DsiRuntimeContext
 
 	def initialize(name, paramNames, variables, instructions)
-		logContext "DsiFunctionContext #{name}"
+		logContext ";;;;;;;;;;;;DsiFunctionContext #{name}"
 		super(name, variables) # TODO: Scope
 		logContext "DsiFunctionContext.initialize variables size #{getVariables.size}, #{getVariables.to_s}"
 		@paramNames = paramNames

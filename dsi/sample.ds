@@ -1,8 +1,38 @@
-use "externalLibraryName"
-
-g = 99
+//use "externalLibraryName"
+//g = 99
 
 func main()
+/*
 	a = 2
-	print(a)
+	b = 1
+	a = 5
+	
+	if (true) then
+		a = 6
+	else
+		a = 2 // not hitting this case
+	end
+	
+	
+	//print(a)
+
+	a = 1
+	a = 3 + 5
+
+	if(false)
+		b = 1 + 2 + 3 + 4
+	elsif(10 > 20)
+		b = -1
+	else
+		c = 60
+	end
+*/
+
+	a = 100
+	if(a == 99) then
+		b = 10
+	else
+		c = 4
+	end
+	
 end
