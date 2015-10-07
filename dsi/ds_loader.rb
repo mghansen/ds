@@ -393,31 +393,38 @@ class Loader
 	end
 	
 	def processForIn(statement, loaderState)
-		loaderState.addVar(statement.getVariant)
+		loaderState.addEmptyVariable(statement.getVariant)
 		set = processSetstatement.getSet
 		statements = processStatements(statement.getStatements, loaderState)
 		item = DsiForIn.new(statement.getVariant, set, statements)
 	end
 	
 	def processForFrom(statement, loaderState)
-		loaderState.addVar(statement.getVariant)
+		loaderState.addEmptyVariable(statement.getVariant)
 		startExpression = processExpression(statement.getStartExpression, loaderState)
 		endExpression = processExpression(statement.getEndExpression, loaderState)
+		stepExpression = nil
+		if statement.getStepExpression != nil
+			puts "ADDING STEP"
+			stepExpression = processExpression(statement.getStepExpression, loaderState)
+		end
+		excludeLastItem = statement.getExcludeLastItem
+		puts "ADDING STATEMENTS"
 		statements = processStatements(statement.getStatements, loaderState)
-		item = DsiForFrom.new(statement.getVariant, startExpression, endExpression, statements)
+		item = DsiForFrom.new(statement.getVariant, startExpression, endExpression, stepExpression, excludeLastItem, statements)
 		item
 	end
 	
 	def processWhile(statement, loaderState)
-		expression = processExpression(statemet.getExpression, loaderState)
+		expression = processExpression(statement.getExpression, loaderState)
 		statements = processStatements(statement.getStatements, loaderState)
-		item = DsiWhile.new(expresion, statements)
+		item = DsiWhile.new(expression, statements)
 	end
 	
 	def processDo(statement, loaderState)
 		statements = processStatements(statement.getStatements, loaderState)
-		expression = processExpression(statemet.getExpression, loaderState)
-		item = DsiDo.new(statements, expresion)
+		expression = processExpression(statement.getExpression, loaderState)
+		item = DsiDo.new(statements, expression)
 	end
 
 	def processSwitch(statement, loaderState)
@@ -463,24 +470,19 @@ class Loader
 			firstExpression = processExpression(expression.getFirstExpression, loaderState)
 			secondExpression = processExpression(expression.getSecondExpression, loaderState)
 			item = DsiOperation.new(firstExpression, expression.getOperator, secondExpression)
-		
 		elsif expression.is_a?(DspFunctionCall)
 			logLoader "processExpression DspFunctionCall"
 			item = processFunctionCall(expression)
-			
 		elsif expression.is_a?(DspConstant)
 			logLoader "processExpression DspConstant"
 			#item = processConstant(expression)
 			item = LoaderState.translateDspValue(expression)
-			
 		elsif expression.is_a?(DspQName)
 			logLoader "processExpression DspQName"
 			item = DsiVariable.new(expression.getName)
-
 		else
 			item = nil
 		end
-		
 		item
 	end
 end

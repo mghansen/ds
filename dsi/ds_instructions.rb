@@ -38,7 +38,7 @@ class DsiAssignment < DsiInstruction
 			logInstructions "DsiAssignment.evaluate #{lValue.getName}"
 			logInstructions @rValue.to_s
 			rValue = @rValue.evaluate(state)
-			logInstructions "DsiAssignment.evaluate rValue #{rValue.getValue}"
+			logInstructions "DsiAssignment.evaluate rValue #{rValue.to_s}"
 
 			case @operator
 			when "="
@@ -100,37 +100,58 @@ class DsiCondition < DsiInstruction
 end
 
 class DsiForIn < DsiInstruction
-	def initialize(variant, set, statements)
-		logInstructions "DsiForIn #{variant} in #{set} (NOT IMPLEMENTED)"
+	def initialize(variantName, set, statements)
+		logInstructions "DsiForIn #{variantName} in #{set} (NOT IMPLEMENTED)"
 		super()
-		@variant = variant
+		@variantName = variantName
 		@set = set
 		@statements = statements
 	end
 	def evaluate(state)
 		logInstructions "DsiForIn.EVALUATE"
-		state.addVariable(@variant)
+		state.addVariable(@variantName)
 		# TODO: Arrays
 	end
 end
 
 class DsiForFrom < DsiInstruction
-	def initialize(variant, startExpression, endExpression, statements)
-		logInstructions "DsiForFrom #{variant}"
+	# TODO: Add step value. If step 0, you'll have to add your own increment
+	def initialize(variantName, startExpression, endExpression, stepExpression, excludeLastItem, statements)
+		logInstructions "DsiForFrom #{variantName}"
 		super()
-		@variant = variant
+		@variantName = variantName
 		@startExpression = startExpression
 		@endExpression = endExpression
-		@statements = statement
+		@stepExpression = stepExpression
+		@excludeLastItem = excludeLastItem
+		@statements = statements
 	end
 	def evaluate(state)
 		logInstructions "DsiForFrom.EVALUATE"
-		state.addVariable(@variant)
-		variant = state.getVariable(@variant)
+		startValue = @startExpression.evaluate(state)
+		endValue = @endExpression.evaluate(state)
+		if @stepExpression == nil
+			stepValue = DsiNumberValue.new(1)
+		else
+			stepValue = DsiNumberValue.new(@stepExpression.evaluate(state))
+		end
+		state.addVariableByName(@variantName)
+		variant = state.getVariable(@variantName)
 		variant.setValue(@startExpression.evaluate(state))
-		while @endExpression.evaluate(state).isTrue do
-			@statements.evaluate(state)
-			# Implementor is responsible to iterate the variant
+		
+		if @excludeLastItem
+			# for from to
+			while variant.getValue.neq?(endValue) do
+				@statements.each { |s| s.evaluate(state) }
+				variant.setValue variant.getValue.add(stepValue)
+			end
+		else
+			# for from through
+			@statements.each { |s| s.evaluate(state) }
+			while variant.getValue.neq?(endValue) do
+				variant.setValue variant.getValue.add(stepValue)
+				@statements.each { |s| s.evaluate(state) }
+			end
 		end
 	end
 end
@@ -144,8 +165,8 @@ class DsiWhile < DsiInstruction
 	end
 	def evaluate(state)
 		logInstructions "DsiWhile.EVALUATE"
-		while @endExpression.evaluate(state).isTrue do
-			@statements.evaluate(state)
+		while @expression.evaluate(state).isTrue do
+			@statements.each { |s| s.evaluate(state) }
 		end
 	end
 end
@@ -160,8 +181,8 @@ class DsiDo < DsiInstruction
 	def evaluate(state)
 		logInstructions "DsiWhile.EVALUATE"
 		loop do
-			@statements.evaluate(state)
-			if not @endExpression.evaluate(state).isTrue
+			@statements.each { |s| s.evaluate(state) }
+			if not @expression.evaluate(state).isTrue
 				break
 			end
 		end
@@ -175,6 +196,14 @@ class DsiSwitch < DsiInstruction
 		@expression = expression
 		@cases = cases
 	end
+	def evaluate(state)
+		controlValue = @expression.evaluate(state)
+		@cases.each do |c|
+			if c.matches(controlValue, state)
+				c.evaluate(state)
+			end
+		end
+	end
 end
 	
 class DsiCase
@@ -183,6 +212,17 @@ class DsiCase
 		super()
 		@expression = expression
 		@statements = statements
+	end
+	def matches(controlValue, state)
+		caseValue = @expression.evaluate(state)
+		if caseValue.eq?(controlValue)
+			return true
+		else
+			return false
+		end
+	end
+	def evaluate(state)
+		@statements.each { |s| s.evaluate(state) }
 	end
 end
 
@@ -211,10 +251,9 @@ class DsiOperation < DsiExpression
 		logInstructions "DsiOperation.evauate #{@operator}"
 		leftValue = @leftExpression.evaluate(state)
 		rightValue = @rightExpression.evaluate(state)
-		#DspOperation.@@logicalOperators = [ "+", "-", "*", "/", "." ]
-		#DspOperation.@@arithmeticOperators = [ "!", "<", "<=", "==", ">", ">=", "&&", "||", "^" ]
+		#DspOperation.@@arithmeticOperators = [ "+", "-", "*", "/", "." ]
+		#DspOperation.@@logicalOperators = [ "!", "<", "<=", "==", ">", ">=", "&&", "||", "^" ]
 		returnValue = nil
-		logInstructions "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&7"
 		puts leftValue.to_s
 		puts rightValue.to_s
 		if leftValue.is_a?(DsiNumberValue) and rightValue.is_a?(DsiNumberValue)
@@ -244,8 +283,8 @@ class DsiOperation < DsiExpression
 				returnValue = DsiBoolValue.new(l >= r)
 			end
 		elsif (leftValue.is_a?(DsiBoolValue) and rightValue_is_a?(DsiBoolValue)) or
-				(leftValue.is_a?(DsiNumberValue) and rightValue_is_a?(DsiBoolValue)) or
-				(leftValue.is_a?(DsiBoolValue) and rightValue_is_a?(DsiNumberValue))
+				(leftValue.is_a?(DsiNumberValue) and rightValue.is_a?(DsiBoolValue)) or
+				(leftValue.is_a?(DsiBoolValue) and rightValue.is_a?(DsiNumberValue))
 			l = leftValue.is_a?(DsiBoolValue) ? leftValue.getValue : (leftValue.getValue != 0 ? true : false)
 			r = rightValue.is_a?(DsiBoolValue) ? rightValue.getValue : (rightValue.getValue != 0 ? true : false)
 			logInstructions "DsiOperation.evauate boolean #{l.to_s} #{@operator} #{r.to_s}"
@@ -264,10 +303,16 @@ class DsiOperation < DsiExpression
 			when "+"
 				l = leftValue.to_s
 				r = rightValue.to_s
-				returnValue = DsiStringValue(l + r)
+				returnValue = DsiStringValue.new(l + r)
+			when "=="
+				returnValue = DsiBoolValue.new(l.eql?(r))
+			when "!="
+				returnValue = DsiBoolValue.new(l.eql?(r) == false)
 			end
 		else
 			logInstructions "DsiOperation.evaluate invalid use of operator."
+			puts leftValue.to_s
+			puts rightValue.to_s
 		end
 		logInstructions "DsiOperation.evauate done"
 		returnValue
@@ -311,6 +356,37 @@ class DsiValue < DsiExpression
 		logInstructions "DsiValue.evaluate #{@value}"
 		DsiValue.new(@value)
 	end
+	def compare(otherValue)
+		return -1 # like strcmp
+	end
+	def eq?(otherValue)
+		return true if compare(otherValue) == 0
+		return false
+	end
+	def neq?(otherValue)
+		#puts "NEQ L:#{getValue} R:#{otherValue.getValue}"
+		return false if compare(otherValue) == 0
+		return true
+	end
+	def lt?(otherValue)
+		return true if compare(otherValue) < 0
+		return false
+	end
+	def gt?(otherValue)
+		return true if compare(otherValue) > 0
+		return false
+	end
+	def lteq?(otherValue)
+		return true if compare(otherValue) <= 0
+		return false
+	end
+	def gteq?(otherValue)
+		return true if compare(otherValue) >= 0
+		return false
+	end
+	def add(otherValue)
+		return @value
+	end
 	def to_s
 		"#{@value.to_s}"
 	end
@@ -334,6 +410,34 @@ class DsiNumberValue < DsiValue
 		logInstructions "DsiNumberValue.evaluate #{@value}"
 		DsiNumberValue.new(@value)
 	end
+	def compare(otherValue)
+		compareValue = 0
+		if otherValue.is_a?(DsiNumberValue)
+			compareValue = otherValue.getValue
+		elsif otherValue.is_a?(DsiStringValue)
+			if otherValue.getValue.include? '.'
+				compareValue = otherValue.getValue.to_f
+			else
+				compareValue = otherValue.getValue.to_i
+			end
+		end
+		if getValue == compareValue
+			return 0
+		elsif getValue < compareValue
+			return -1
+		elsif getValue > compareValue
+			return 1
+		end
+	end
+	def add(otherValue)
+		ret = getValue
+		if otherValue.is_a?(DsiNumberValue)
+			ret = DsiNumberValue.new(getValue + otherValue.getValue)
+		elsif otherValue.is_a?(DsiStringValue)
+			ret = DsiStringValue.new("#{getValue.to_s}#{otherValue.getValue}")
+		end
+		return ret
+	end
 	def to_s
 		"#{@value.to_s}"
 	end
@@ -352,8 +456,25 @@ class DsiStringValue < DsiValue
 		logInstructions "DsiStringValue.evaluate #{@value}"
 		DsiStringValue.new(@value)
 	end
+	def compare(otherValue)
+		compareValue = ""
+		if otherValue.is_a?(DsiStringValue)
+			compareValue = otherValue.getValue
+		elsif otherValue.is_a?(DsiNumberValue)
+			compareValue = "#{otherValue.getValue.to_s}"
+		end
+		return getValue <=> compareValue
+	end
+	def add(otherValue)
+		if otherValue.is_a?(DsiStringValue)
+			ret = DsiStringValue.new("#{getValue}#{otherValue.getValue}")
+		else
+			ret = DsiStringValue.new("#{getValue}#{otherValue.getValue.to_s}")
+		end
+		return ret
+	end
 	def to_s
-		"#{@value.to_s}="
+		"#{@value.to_s}"
 	end
 end
 
@@ -374,6 +495,39 @@ class DsiBoolValue < DsiValue
 	def evaluate(state)
 		logInstructions "DsiBoolValue.evaluate #{@value}"
 		DsiBoolValue.new(@value)
+	end
+	def compare(otherValue)
+		if otherValue.is_a?(DsiBoolValue) and getValue == otherValue.getValue
+			return 0
+		else
+			return - 1
+		end
+	end
+	def _and(otherValue)
+		if otherValue.is_a?(DsiBoolValue) and getValue and otherValue.getValue
+			return true
+		else
+			return false
+		end
+	end
+	def _or(otherValue)
+		if otherValue.is_a?(DsiBoolValue) and (getValue or otherValue.getValue)
+			return true
+		else
+			return false
+		end
+	end
+	def _xor(otherValue)
+		if otherValue.is_a?(DsiBoolValue) and
+				((getValue and not otherValue.getValue) or (otherValue.getValue and not getValue))
+			return true
+		else
+			return false
+		end
+	end
+	def _not
+		return false if getValue
+		return true
 	end
 	def to_s
 		@value ? "TRUE" : "FALSE"

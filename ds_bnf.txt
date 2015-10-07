@@ -69,7 +69,9 @@
 			<for_in> ::= for <for_variant> in <set> do <block> end
 				<set> ::= <var_name>
 				<for_variant> :== <name>
-			<for_from> | ::= for <for_variant> from <expression> to <expression> <block> end
+			<for_from> ::= for <for_variant> from <expression> <for_preposition> <expression> { <step> } <block> end
+				<for_preposition> ::= to | through
+				<step> ::= step <expression>
 				
 			<while> ::= while <nested_expression> do <block> end
 			<do> ::= do <block> while <nested_expression>

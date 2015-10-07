@@ -31,8 +31,8 @@ end
 
 class DspObject
 	@@keywords = [ 
-		"use", "new", "array", "of", "enum", "end", "class", "from", "func", "true", "false", "return", 
-		"break", "continue", "if", "else", "elsif", "for", "in", "do", "from", "to", "while", "switch", "case" ]
+		"use", "new", "array", "of", "enum", "end", "class", "from", "step", "func", "true", "false", "return", 
+		"break", "continue", "if", "else", "elsif", "for", "in", "do", "from", "to", "through", "while", "switch", "case" ]
 		
 	def initialize
 		@consumed = 1
@@ -693,8 +693,8 @@ end
 # DspOperation ####################################################################################################
 
 class DspOperation < DspExpression
-	@@logicalOperators = [ "+", "-", "*", "/", "." ]
-	@@arithmeticOperators = [ "!", "<", "<=", "==", ">", ">=", "&&", "||", "^" ]
+	@@arithmeticOperators = [ "+", "-", "*", "/", "." ]
+	@@logicalOperators = [ "!", "<", "<=", "==", ">", ">=", "&&", "||", "^" ]
 	
 	def initialize(firstExpression, operator, secondExpression)
 		super()
@@ -1064,11 +1064,17 @@ end
 # DspForFrom ####################################################################################################
 
 class DspForFrom < DspFor
-	def initialize(variant, startExpression, endExpression, block)
+	def initialize(variant, startExpression, endExpression, stepExpression, excludeLastItem, block)
 		super(variant, block)
 		@startExpression = startExpression
 		@endExpression = endExpression
-		consume 3 + startExpression.getConsumed() + 1 + endExpression.getConsumed() + block.getConsumed()
+		@stepExpression = stepExpression
+		@excludeLastItem = excludeLastItem
+		toConsume = 3 + startExpression.getConsumed() + 1 + endExpression.getConsumed() + block.getConsumed()
+		if @stepExpression != nil
+			toConsume += 1 + @stepExpression.getConsumed
+		end
+		consume toConsume
 	end
 	def getStartExpression
 		@startExpression
@@ -1076,19 +1082,42 @@ class DspForFrom < DspFor
 	def getEndExpression
 		@endExpression
 	end
+	def getStepExpression
+		@stepExpression
+	end
+	def getExcludeLastItem
+		@excludeLastItem
+	end
 	def self.parse tokens
 		logElementsTokens "DspForFrom.parse", tokens
 		variant = tokens[1]
 		consumed = 3
+		stepExpression = nil
 		startExpression = DspExpression.parse(tokens[consumed..-1])
-		if startExpression.isValid and tokens[consumed + startExpression.getConsumed].eql?("to")
+		if startExpression.isValid and 
+				(tokens[consumed + startExpression.getConsumed].eql?("to") or
+				tokens[consumed + startExpression.getConsumed].eql?("through"))
+			if tokens[consumed + startExpression.getConsumed].eql?("to")
+				excludeLastItem = true
+			else
+				excludeLastItem = false
+			end
 			consumed += startExpression.getConsumed + 1
 			endExpression = DspExpression.parse(tokens[consumed..-1])
 			if endExpression.isValid
 				consumed += endExpression.getConsumed
+				if tokens[consumed].eql?("step")
+					consumed += 1
+					stepExpression = DspExpression.parse(tokens[consumed..-1])
+					if stepExpression.isValid
+						consumed += stepExpression.getConsumed
+					else
+						# not valid step expression
+					end
+				end
 				block = DspBlock.parse(tokens[consumed..-1], [ "end" ])
 				if block.isValid
-					element = DspForFrom.new(variant, startExpression, endExpression, block)
+					element = DspForFrom.new(variant, startExpression, endExpression, stepExpression, excludeLastItem, block)
 				else
 					element = invalid()
 				end
@@ -1102,7 +1131,10 @@ class DspForFrom < DspFor
 	def format(indent)
 		s = "#{prefix(indent)}FOR #{@variant}\n"
 		s << "#{prefix(indent + 1)}FROM\n#{@startExpression.format(indent + 2)}"
-		s << "#{prefix(indent + 1)}TO\n#{@endExpression.format(indent + 2)}"
+		s << "#{prefix(indent + 1)}#{@excludeLastItem ? "TO" : "THROUGH"}\n#{@endExpression.format(indent + 2)}"
+		if @stepExpression != nil
+			s << "#{prefix(indent + 1)}STEP\n#{@stepExpression.format(indent + 2)}"
+		end
 		s << "#{prefix(indent + 1)}BODY\n"
 		s << @block.format(indent + 2)
 		s << "#{prefix(indent)}END FOR FROM\n"

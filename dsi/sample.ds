@@ -26,13 +26,36 @@ func main()
 	else
 		c = 60
 	end
-*/
 
 	a = 100
 	if(a == 99) then
 		b = 10
 	else
 		c = 4
+	end
+
+	a = 0
+	for i from 1 through 5
+		a = a + i
+	end
+
+	b = 1
+	do
+		b = b * 2
+	while(b < 10)
+*/
+
+	q = "donuts"
+	switch("donuts")
+		case("fritters")
+			a = 1
+		end
+		case("bacon")
+			a = 2
+		end
+		case(q)
+			a = 3
+		end
 	end
 	
 end

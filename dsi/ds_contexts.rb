@@ -48,15 +48,29 @@ class DsiRuntimeState
 		var
 	end
 	
-	def addVariable(variable)
+	def isVariablePresent(variableName)
 		found = false
 		@variables.each do |v|
-			if v.getName.eql?(variable.getName)
-				found = false
+			if v.getName.eql?(variableName)
+				found = true
 			end
 		end
-		if not found
+		if not found and @parentState != nil
+			found = @parentState.isVariablePresent(variableName)
+		end
+		found
+	end
+	
+	def addVariable(variable)
+		if not isVariablePresent(variable.getName)
 			@variables.push(variable)
+		end
+	end
+	
+	def addVariableByName(variableName)
+		if not isVariablePresent(variableName)
+			newVariable = DsiVariable.new(variableName, DsiValue.new(nil))
+			@variables.push(newVariable)
 		end
 	end
 	
