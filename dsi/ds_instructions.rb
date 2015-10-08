@@ -88,7 +88,7 @@ class DsiCondition < DsiInstruction
 		logInstructions "DsiCondition.EVALUATE"
 		managed = false
 		resultValue = @expression.evaluate(state)
-		puts resultValue.to_s
+		#puts resultValue.to_s
 		if resultValue.isTrue
 			@statements.each do |s|
 				s.evaluate(state)
@@ -254,8 +254,8 @@ class DsiOperation < DsiExpression
 		#DspOperation.@@arithmeticOperators = [ "+", "-", "*", "/", "." ]
 		#DspOperation.@@logicalOperators = [ "!", "<", "<=", "==", ">", ">=", "&&", "||", "^" ]
 		returnValue = nil
-		puts leftValue.to_s
-		puts rightValue.to_s
+		#puts leftValue.to_s
+		#puts rightValue.to_s
 		if leftValue.is_a?(DsiNumberValue) and rightValue.is_a?(DsiNumberValue)
 			l = leftValue.getValue
 			r = rightValue.getValue
@@ -311,8 +311,8 @@ class DsiOperation < DsiExpression
 			end
 		else
 			logInstructions "DsiOperation.evaluate invalid use of operator."
-			puts leftValue.to_s
-			puts rightValue.to_s
+			#puts leftValue.to_s
+			#puts rightValue.to_s
 		end
 		logInstructions "DsiOperation.evauate done"
 		returnValue
@@ -328,9 +328,23 @@ class DsiFunctionCall < DsiExpression
 	end
 	def evaluate(state)
 		logInstructions "DsiFunctionCall.evauate"
-		# Set up internal state of the function, including named params
-		# Loop through instructions
-		super
+		ret = nil
+		
+		# Find the context for the target function and check parameters
+		functionContext = state.getFunctionContext(@name)
+		if functionContext != nil and functionContext.getParamNames.size == @paramExpressions.size
+			newState = functionContext.makeFunctionState(state.getParentState)
+			# Set up internal state of the function, including named params
+			numExpressions = @paramExpressions.size
+			for i in 0 .. numExpressions - 1
+				newValue = @paramExpressions[i].evaluate(state)
+				newVariable = DsiVariable.new(functionContext.getParamNames[i], newValue)
+				newState.addVariable(newVariable)
+			end
+		end
+		
+		returnValue = functionContext.invoke(newState)
+		returnValue
 	end
 end
 

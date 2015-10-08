@@ -16,35 +16,55 @@ end
 # Runtime states ####################################################################################################
 
 class DsiRuntimeState
-	def initialize(currentScopeName, variables, parentState)
+	def initialize(currentScopeName, variables, parentState, globalContext)
 		@currentScopeName = currentScopeName
 		@variables = variables
 		@parentState = parentState
+		@globalContext = globalContext
 		@returnValue = nil # ?
 		#logState "DsiRuntimeState.initialize variables.size #{variables.size}"
 		logState "DsiRuntimeState.initialize variables=#{variables.to_s}"
 		# TODO: deep copy of variables, default values
-		
 	end
+
 	def getName
 		@currentScopeName
 	end
+
+	def getGlobalContext
+		@globalContext
+	end
+	
+	def getClassContext(name)
+		@globalContext.getClassContext(name)
+	end
+	
+	def getFunctionContext(name)
+		@globalContext.getFunctionContext(name)
+	end	
+	
+	def getParentState
+		@parentState
+	end
+	
 	def getVariables
 		@variables
 	end
+
 	def getVariable(name)
-		logState "DSIRUNTIMESTATE.getVariable #{name}"
+		#logState "DSIRUNTIMESTATE.getVariable #{@currentScopeName} :: #{name}"
 		var = nil
 		@variables.each do |v|
 			if v.getName.eql?(name)
 				var = v
+				#logState "DsiRuntimeState.getVariable found local"
 				break
 			end
 		end
-		if var == nil and not @parentState == nil
+		if var == nil and @parentState != nil
 			var = @parentState.getVariable(name)
 		end
-		logState "DsiRuntimeState.getVariable end"
+		#logState "DsiRuntimeState.getVariable end"
 		var
 	end
 	
@@ -131,6 +151,39 @@ class DsiRuntimeContext
 		@name = name
 		@variables = variables
 		#logContext "DsiRuntimeContext.initialize variables size #{@variables.size}, #{@variables.to_s}"
+		@classContexts = nil
+		@functionContexts = nil
+	end
+	
+	def getClassContexts
+		@classes
+	end
+	
+	def getClassContext(name)
+		if @classContexts != nil
+			@classContexts.each do |c|
+				if f.getName.eql?(name)
+					return c
+				end
+			end
+		end
+		return nil
+	end
+
+	def getFunctionContexts
+		@functionContexts
+	end
+	
+	def getFunctionContext(name)
+		if @functionContexts != nil
+			@functionContexts.each do |f|
+				if f.getName.eql?(name)
+					return f
+				end
+			end
+		end
+		# TODO: Search classes
+		return nil
 	end
 	
 	def getName
@@ -185,35 +238,9 @@ class DsiGlobalContext < DsiRuntimeContext
 		@functionContexts = functionContexts
 	end
 	
-	def getClassContexts
-		@classes
-	end
-	
-	def getClassContext(name)
-		@classContexts.each do |c|
-			if f.getName.eql?(name)
-				return c
-			end
-		end
-		return nil
-	end
-
-	def getFunctionContexts
-		@functionContexts
-	end
-	
-	def getFunctionContext(name)
-		@functionContexts.each do |f|
-			if f.getName.eql?(name)
-				return f
-			end
-		end
-		return nil
-	end
-
 	def makeGlobalState
 		scopeName = getName
-		globalState = DsiRuntimeState.new("`GlobalRuntimeState", @variables, nil)
+		globalState = DsiRuntimeState.new("`GlobalRuntimeState", @variables, nil, self)
 		globalState
 	end
 	
@@ -222,10 +249,11 @@ class DsiGlobalContext < DsiRuntimeContext
 		mainContext = getFunctionContext("main")
 		if not mainContext == nil
 			globalState = makeGlobalState
+			functionState = mainContext.makeFunctionState(globalState)
 			logState "DsiGlobalContext.run - Creating context for main"
 			params = Array.new # TODO: Command line parameters
 			globalState.dump
-			ret = mainContext.invoke(globalState)
+			ret = mainContext.invoke(functionState)
 		end
 	end
 	
@@ -246,14 +274,12 @@ class DsiClassContext < DsiRuntimeContext
 		@name
 	end
 	
-	def addFunction(functionContext)
+	def addFunctionContext(functionContext)
 		# TODO: Qualify incoming names (classname.functionname)
-		@functionContexts.each do |f|
-			if f.getName.eql?(functionContext.getName)
-				return
-			end
+		existingContext = getFunctionContext(functionContext.getName)
+		if existingContext != nil
+			@functionContexts.push(functionContext)
 		end
-		@functionContexts.push(functionContext)
 	end
 end	
 
@@ -262,7 +288,7 @@ end
 class DsiFunctionContext < DsiRuntimeContext
 
 	def initialize(name, paramNames, variables, instructions)
-		logContext ";;;;;;;;;;;;DsiFunctionContext #{name}"
+		logContext "DsiFunctionContext #{name}"
 		super(name, variables) # TODO: Scope
 		logContext "DsiFunctionContext.initialize variables size #{getVariables.size}, #{getVariables.to_s}"
 		@paramNames = paramNames
@@ -276,6 +302,10 @@ class DsiFunctionContext < DsiRuntimeContext
 	
 	def getInstructions
 		@instructions
+	end
+	
+	def getParamNames
+		@paramNames
 	end
 	
 	def setClassName(className)
@@ -295,22 +325,18 @@ class DsiFunctionContext < DsiRuntimeContext
 		scopeName = getName # TODO: Class names
 		variables = getVariables
 		logState "DsiFunctionContext.makeFunctionState #{scopeName} variables #{variables.size}, #{variables.to_s}"
-		functionState = DsiRuntimeState.new(scopeName, variables, parentState)
+		functionState = DsiRuntimeState.new(scopeName, variables, parentState, parentState.getGlobalContext)
 		functionState
 	end
 	
-	def invoke(parentState)
+	def invoke(functionState)
 		logState "DsiFunctionContext.invoke #{getName}"
-		
-		state = makeFunctionState(parentState)
-		
 		# Iterate through the statements in the context
 		getInstructions.each do |i|
-			i.evaluate(state)
+			i.evaluate(functionState)
 		end
 		
-		state.dump
-		#dump(state)
+		functionState.dump
 	end
 	
 end

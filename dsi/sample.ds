@@ -1,7 +1,14 @@
 //use "externalLibraryName"
-//g = 99
+g = 1
+
+func foo(bar)
+	g = g + bar
+end
 
 func main()
+	v = 10
+	foo(v)
+
 /*
 	a = 2
 	b = 1
@@ -43,7 +50,6 @@ func main()
 	do
 		b = b * 2
 	while(b < 10)
-*/
 
 	q = "donuts"
 	switch("donuts")
@@ -58,4 +64,5 @@ func main()
 		end
 	end
 	
+*/
 end

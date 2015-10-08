@@ -5,7 +5,7 @@ require_relative '../dsp/ds_elements'
 require_relative 'ds_contexts'
 require_relative 'ds_instructions'
 
-$logForLoader = true
+$logForLoader = false
 
 def logLoader text
 	puts ("L " + text) if $logForLoader
@@ -83,7 +83,12 @@ class LoaderState
 	
 	def addEmptyVariable(name)
 		logLoader "LoaderState.addEmptyVariable #{name}"
-		if not doesVariableExist?(name)
+		parentHasVariable = false
+		if @parent != nil and @parent.doesVariableExist?(name)
+			logLoader "LoaderState.addEmptyVariable variable #{name} was found in the parent state"
+			parentHasVariable = true
+		end
+		if not doesVariableExist?(name) and parentHasVariable == false
 			@dsiVariables.push(DsiVariable.new(name, nil))
 			logLoader "LoaderState.addEmptyVariable added #{name}"
 		end
