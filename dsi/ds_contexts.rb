@@ -321,7 +321,6 @@ class DsiFunctionContext < DsiRuntimeContext
 	
 	def makeFunctionState(parentState)
 		logState "DsiFunctionContext.makeFunctionState #{getName}"
-		# TODO: Param variable names/values need to be added to the state
 		scopeName = getName # TODO: Class names
 		variables = getVariables
 		logState "DsiFunctionContext.makeFunctionState #{scopeName} variables #{variables.size}, #{variables.to_s}"
@@ -335,8 +334,15 @@ class DsiFunctionContext < DsiRuntimeContext
 		getInstructions.each do |i|
 			i.evaluate(functionState)
 		end
-		
+		returnVariable = functionState.getVariable("`Return")
+		if returnValue != nil
+			returnValue = returnVariable.getValue
+		else
+			returnValue = DsiNumberValue(0)
+		end
+
 		functionState.dump
+		return returnValue
 	end
 	
 end

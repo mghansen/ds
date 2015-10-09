@@ -572,6 +572,9 @@ class DspExpression < DspStatement
 			else
 				element = invalid()
 			end
+		elsif tokens[0].eql?("!")
+			logElements "UNARY OPERATOR"
+			element = DspOperation.parse(tokens, nil)
 		elsif DspObject.isNumber(tokens[0])
 			logElements "EXPRESSION NUMBER"
 			element = DspNumber.parse(tokens)
@@ -583,6 +586,7 @@ class DspExpression < DspStatement
 			element = DspBool.parse(tokens)
 		elsif tokens[0].eql?("nil")
 			logElements "NIL"
+			# TODO: Concept of nil
 		elsif [ "return", "break", "continue" ].include?(tokens[0])
 			# logElements "RESERVED FUNCTION CALL"
 			element = DspReservedFunction.parse(tokens)
@@ -694,14 +698,22 @@ end
 
 class DspOperation < DspExpression
 	@@arithmeticOperators = [ "+", "-", "*", "/", "." ]
-	@@logicalOperators = [ "!", "<", "<=", "==", ">", ">=", "&&", "||", "^" ]
+	@@logicalOperators = [ "<", "<=", "==", ">", ">=", "&&", "||", "^" ]
+	@@unaryOperators = [ "!" ]
 	
 	def initialize(firstExpression, operator, secondExpression)
 		super()
 		@firstExpression = firstExpression
 		@operator = operator
 		@secondExpression = secondExpression
-		consume @firstExpression.getConsumed + 1 + @secondExpression.getConsumed
+		
+		if @firstExpression != nil
+			logElements "DspNumber.initialize first expression is valid"
+			consume @firstExpression.getConsumed + 1 + @secondExpression.getConsumed
+		else
+			logElements "DspNumber.initialize first expression is not valid"
+			consume 1 + @secondExpression.getConsumed
+		end
 	end
 	def getFirstExpression
 		@firstExpression
@@ -714,17 +726,25 @@ class DspOperation < DspExpression
 	end
 	def self.parse(tokens, firstExpression)
 		logElementsTokens "DspOperation.parse", tokens
-		operator = tokens[firstExpression.getConsumed]
-		if DspOperation.isOperator(operator)
-			secondExpression = DspExpression.parse(tokens[(firstExpression.getConsumed + 1)..-1])
+		
+		element = invalid()
+		
+		if @@unaryOperators.include?(tokens[0])
+			logElements "DspNumber.parse unary operator"
+			operator = tokens[0]
+			secondExpression = DspExpression.parse(tokens[1..-1])
 			if secondExpression.isValid
+				logElements "DspNumber.parse second expression is valid"
 				element = DspOperation.new(firstExpression, operator, secondExpression)
-			else
-				element = invalid()
 			end
 		else
-			element = invalid()
-			# element = firstExpression # ?
+			operator = tokens[firstExpression.getConsumed]
+			if DspOperation.isOperator(operator)
+				secondExpression = DspExpression.parse(tokens[(firstExpression.getConsumed + 1)..-1])
+				if secondExpression.isValid
+					element = DspOperation.new(firstExpression, operator, secondExpression)
+				end
+			end
 		end
 		element
 	end
@@ -733,7 +753,9 @@ class DspOperation < DspExpression
 	end
 	def format(indent)
 		s = "#{prefix(indent)}OPERATION\n"
-		s << @firstExpression.format(indent + 1)
+		if @firstExpression != nil
+			s << @firstExpression.format(indent + 1)
+		end
 		s << "#{prefix(indent)}#{@operator}\n"
 		s << @secondExpression.format(indent + 1)
 		s << "#{prefix(indent)}END OPERATION\n"
@@ -747,7 +769,7 @@ end
 class DspFunctionCall < DspExpression
 	def initialize(name, tokens)
 		# logElements "DspFunctionCall.initialize"
-		# TODO: Put parsing logic into parse and not in initialize at all
+		# TODO: Put parsing logic into parse and not in initialize at all !!!!!!!!!!!!!!!!!!!
 		super()
 		@name = name
 		consumed = 2
@@ -806,13 +828,14 @@ end
 
 class DspReservedFunction < DspFunctionCall
 	def initialize(name, expression)
-		super()
+		super(name, expression)
 		@name = name
 		@expression = expression
 		consumed = 1
 		if @name.eql?("return")#if expression == nil
 			consumed = consumed + @expression.getConsumed
 		end
+		logElements "DspNumber.parse consuming #{consumed} tokens"
 		consume consumed
 	end
 	def getName

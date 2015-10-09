@@ -46,10 +46,13 @@
 				<string_value> ::= '"'...'"'
 				<bool_value> ::= true | false
 				
-			<operation> ::= <expression> <operator> <expression>
+			<operation> ::= <operation_binary> | <operation_unary>
+			<operation_binary> ::= <expression> <operator> <expression>
 				<operator> ::= <arithmetic_operator> | <logical_operator>
 					<arithmetic_operator> ::= "!" | "<" | "<=" | "==" | ">=" | ">" | "&&" | "||" | "^"
 					<logical_operator> ::= "+" | "-" | "*" | "/" | "."
+			<operation_unary> ::= <unary_operator> <expression>
+				<unary_operator> ::= "!"
 
 			<function_call> ::= <function_message_name> ( <params> )
 				<function_message_name> ::= <call_name> | <reserved_function>

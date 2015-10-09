@@ -115,7 +115,6 @@ class DsiForIn < DsiInstruction
 end
 
 class DsiForFrom < DsiInstruction
-	# TODO: Add step value. If step 0, you'll have to add your own increment
 	def initialize(variantName, startExpression, endExpression, stepExpression, excludeLastItem, statements)
 		logInstructions "DsiForFrom #{variantName}"
 		super()
@@ -249,14 +248,28 @@ class DsiOperation < DsiExpression
 	end
 	def evaluate(state)
 		logInstructions "DsiOperation.evauate #{@operator}"
-		leftValue = @leftExpression.evaluate(state)
+		if @leftExpression != nil
+			leftValue = @leftExpression.evaluate(state)
+		else
+			leftValue = nil
+		end
 		rightValue = @rightExpression.evaluate(state)
 		#DspOperation.@@arithmeticOperators = [ "+", "-", "*", "/", "." ]
 		#DspOperation.@@logicalOperators = [ "!", "<", "<=", "==", ">", ">=", "&&", "||", "^" ]
 		returnValue = nil
 		#puts leftValue.to_s
 		#puts rightValue.to_s
-		if leftValue.is_a?(DsiNumberValue) and rightValue.is_a?(DsiNumberValue)
+		if leftValue == nil
+			r = rightValue.getValue
+			case @operator
+			when "!"
+				if rightValue.is_a?(DsiBoolValue)
+					returnValue = DsiBoolValue.new(r == false)
+				elsif rightValue.is_a?(DsiNumberValue)
+					returnValue = DsiNumberValue.new(r == 0 ? 1 : 0)
+				end
+			end
+		elsif leftValue.is_a?(DsiNumberValue) and rightValue.is_a?(DsiNumberValue)
 			l = leftValue.getValue
 			r = rightValue.getValue
 			logInstructions "DsiOperation.evauate arithmetic #{l.to_s} #{@operator} #{r.to_s}"
@@ -315,7 +328,7 @@ class DsiOperation < DsiExpression
 			#puts rightValue.to_s
 		end
 		logInstructions "DsiOperation.evauate done"
-		returnValue
+		return returnValue
 	end
 end
 
@@ -344,7 +357,7 @@ class DsiFunctionCall < DsiExpression
 		end
 		
 		returnValue = functionContext.invoke(newState)
-		returnValue
+		return returnValue
 	end
 end
 

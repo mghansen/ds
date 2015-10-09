@@ -27,6 +27,8 @@ dspMain
 
 =begin
 TODO:
+	DSPFUNCTIONCALL.INITIALIZE NEEDS TO LOAD ITS DATA IN THE PARSE FUNCTION INSTEAD
+	
 	Unary operators ++ --
 	Arrays and other containers
 	new Class

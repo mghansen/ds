@@ -472,7 +472,11 @@ class Loader
 		# Expression
 		if expression.is_a?(DspOperation)
 			logLoader "processExpression DspOperation"
-			firstExpression = processExpression(expression.getFirstExpression, loaderState)
+			if expression.getFirstExpression != nil
+				firstExpression = processExpression(expression.getFirstExpression, loaderState)
+			else
+				firstExpression = nil
+			end
 			secondExpression = processExpression(expression.getSecondExpression, loaderState)
 			item = DsiOperation.new(firstExpression, expression.getOperator, secondExpression)
 		elsif expression.is_a?(DspFunctionCall)

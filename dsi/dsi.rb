@@ -28,3 +28,14 @@ def dsiMain
 end
 
 dsiMain
+
+=begin
+TODO:
+	Classes
+	Arrays
+	Qualified names
+	break
+	continue
+	return
+	
+=end
