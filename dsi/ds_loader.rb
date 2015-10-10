@@ -5,7 +5,7 @@ require_relative '../dsp/ds_elements'
 require_relative 'ds_contexts'
 require_relative 'ds_instructions'
 
-$logForLoader = false
+$logForLoader = true
 
 def logLoader text
 	puts ("L " + text) if $logForLoader
@@ -369,11 +369,12 @@ class Loader
 		newStatements
 	end
 	
-	def processFunctionCall(functionCall, processExpression)
-		name = functionCall.getName		
+	def processFunctionCall(functionCall, loaderState)
+		logLoader "$$$ processFunctionCall #{functionCall.getName}"
+		name = functionCall.getName
 		params = Array.new
 		functionCall.getParams.each do |param|
-			newParam = processExpression(param, processExpression)
+			newParam = processExpression(param, loaderState)
 			params.push(newParam)
 		end
 		item = DsiFunctionCall.new(name, params)
@@ -410,11 +411,11 @@ class Loader
 		endExpression = processExpression(statement.getEndExpression, loaderState)
 		stepExpression = nil
 		if statement.getStepExpression != nil
-			puts "ADDING STEP"
+			#puts "ADDING STEP"
 			stepExpression = processExpression(statement.getStepExpression, loaderState)
 		end
 		excludeLastItem = statement.getExcludeLastItem
-		puts "ADDING STATEMENTS"
+		#puts "ADDING STATEMENTS"
 		statements = processStatements(statement.getStatements, loaderState)
 		item = DsiForFrom.new(statement.getVariant, startExpression, endExpression, stepExpression, excludeLastItem, statements)
 		item
@@ -446,20 +447,16 @@ class Loader
 	end
 	
 	def processConstant(expression)
-		logLoader "processConstant"
+		#logLoader "processConstant"
 		if(expression.is_a?(DspNumber))
-			logLoader "processConstant DspNumber  #{expression.getValue}"
-	#		item = DsiNumberValue.new(expression.getValue)
+			#logLoader "processConstant DspNumber  #{expression.getValue}"
 			item = DspNumber.makeDspNumberFromValue(expression.getValue)
-			#item = LoaderState.translateDspValue(expression)
-			logLoader "processConstant DspNumber2 #{item.getValue}"
+			#logLoader "processConstant DspNumber2 #{item.getValue}"
 		elsif(expression.is_a?(DspString))
-			logLoader "processConstant DspString #{expression.getValue}"
-	#		item = DsiStringValue.new(expression.getValue)
+			#logLoader "processConstant DspString #{expression.getValue}"
 			item = DspString.new(expression.getValue)
 		elsif(expression.is_a?(DspBool))
-			logLoader "processConstant DspBool #{expression.getValue}"
-	#		item = DsiBoolValue.new(expression.getValue)
+			#logLoader "processConstant DspBool #{expression.getValue}"
 			item = DspBool.new(expression.getValue)
 		else
 			logLoader "processConstant constant of unknown type"
@@ -481,10 +478,9 @@ class Loader
 			item = DsiOperation.new(firstExpression, expression.getOperator, secondExpression)
 		elsif expression.is_a?(DspFunctionCall)
 			logLoader "processExpression DspFunctionCall"
-			item = processFunctionCall(expression)
+			item = processFunctionCall(expression, loaderState)
 		elsif expression.is_a?(DspConstant)
 			logLoader "processExpression DspConstant"
-			#item = processConstant(expression)
 			item = LoaderState.translateDspValue(expression)
 		elsif expression.is_a?(DspQName)
 			logLoader "processExpression DspQName"

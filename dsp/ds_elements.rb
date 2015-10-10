@@ -31,8 +31,9 @@ end
 
 class DspObject
 	@@keywords = [ 
-		"use", "new", "array", "of", "enum", "end", "class", "from", "step", "func", "true", "false", "return", 
-		"break", "continue", "if", "else", "elsif", "for", "in", "do", "from", "to", "through", "while", "switch", "case" ]
+		"use", "new", "array", "of", "enum", "end", "class", "from", "step", "func", "true", "false", 
+		"if", "else", "elsif", "for", "in", "do", "from", "to", "through", "while", "switch", "case" ]
+	@@libraryFunctions = [ "return", "break", "continue" ]
 		
 	def initialize
 		@consumed = 1
@@ -587,9 +588,6 @@ class DspExpression < DspStatement
 		elsif tokens[0].eql?("nil")
 			logElements "NIL"
 			# TODO: Concept of nil
-		elsif [ "return", "break", "continue" ].include?(tokens[0])
-			# logElements "RESERVED FUNCTION CALL"
-			element = DspReservedFunction.parse(tokens)
 		elsif DspObject.isQName(tokens[0]) and not @@keywords.include?(tokens[0])
 			if tokens[1].eql?("(")
 				# logElements "EXPRESSION FUNCTION CALL"
@@ -767,29 +765,19 @@ end
 # DspFunctionCall ####################################################################################################
 
 class DspFunctionCall < DspExpression
-	def initialize(name, tokens)
+	def initialize(name, params)
 		# logElements "DspFunctionCall.initialize"
 		# TODO: Put parsing logic into parse and not in initialize at all !!!!!!!!!!!!!!!!!!!
 		super()
 		@name = name
-		consumed = 2
-		first = true
-		@params = Array.new
+		@params = params
+		puts "FUNCTION " << name
 
-		i = consumed
-		while i < tokens.size do
-			if tokens[i].eql?(")")
-				consumed += 1
-				break
-			elsif tokens[i].eql?(",")
-				consumed += 1
-				i += 1
-			else
-				param = DspExpression.parse(tokens[i..-1])
-				@params.push(param) if param.isValid
-				consumed += param.getConsumed()
-				i += param.getConsumed()
-			end				
+		consumed = 2
+		if @params.size == 0
+			consumed += 1
+		else
+			@params.each { |p| consumed += p.getConsumed + 1 }
 		end
 		consume consumed
 	end
@@ -800,71 +788,41 @@ class DspFunctionCall < DspExpression
 		@params
 	end
 	def self.parse tokens
-		logElementsTokens "DspFunctionCall.parse", tokens
-		if [ "return", "break", "continue" ].include?(tokens[0])
-			element = DspReservedFunction(tokens)
-		elsif not DspObject.isQName(tokens[0]) or @@keywords.include?(tokens[0]) or not tokens[1].eql?("(")
+		logElementsTokens "&&& DspFunctionCall.parse", tokens
+		if not DspObject.isQName(tokens[0]) or @@keywords.include?(tokens[0]) or not tokens[1].eql?("(")
 			element = invalid()
 		else
-			element = DspFunctionCall.new(tokens[0], tokens)
+			logElementsTokens "&&& DspFunctionCall.parse 1", tokens
+			consumed = 2
+			params = Array.new
+			i = consumed
+			while i < tokens.size do
+				logElementsTokens "DspFunctionCall.parse", tokens[i..-1]
+				if tokens[i].eql?(")")
+					logElementsTokens "&&& DspFunctionCall.parse 2", tokens
+					consumed += 1
+					break
+				elsif tokens[i].eql?(",")
+					consumed += 1
+					i += 1
+				else
+					logElementsTokens "&&& DspFunctionCall.parse 4", tokens
+					param = DspExpression.parse(tokens[i..-1])
+					params.push(param) if param.isValid
+					consumed += param.getConsumed()
+					i += param.getConsumed()
+				end				
+			end
+			element = DspFunctionCall.new(tokens[0], params)
 		end
 		element
 	end
 	def format(indent)
-		s = "#{@name}("
-		first = true
-		@params.each do |p|
-			s << ", " if not first
-			first = false
-			s << p.to_s
-		end
-		s << ")"
-		"#{prefix(indent)}CALL #{s}\n"
+		s = "#{prefix(indent)}CALL #{@name}\n"
+		@params.each { |p| s << p.format(indent + 1) }
+		return s
 	end
 	
-end
-
-# DspReservedFunction ####################################################################################################
-
-class DspReservedFunction < DspFunctionCall
-	def initialize(name, expression)
-		super(name, expression)
-		@name = name
-		@expression = expression
-		consumed = 1
-		if @name.eql?("return")#if expression == nil
-			consumed = consumed + @expression.getConsumed
-		end
-		logElements "DspNumber.parse consuming #{consumed} tokens"
-		consume consumed
-	end
-	def getName
-		@name
-	end
-	def getExpression
-		@expression
-	end
-	def self.parse tokens
-		logElementsTokens "DspReservedFunction.parse", tokens
-		if [ "return", "break", "continue" ].include?(tokens[0])
-			if tokens[0].eql?("return")
-				expression = DspExpression.parse(tokens[1..-1])
-				if expression.isValid
-					element = DspReservedFunction.new(tokens[0], expression)
-				else
-					element = invalid()
-				end
-			else
-				element = DspReservedFunction.new(tokens[0], nil)
-			end
-		else
-			element = invalid()
-		end
-		element
-	end
-	def format(indent)
-		"#{prefix(indent)}CALL #{@name}\n#{@name.eql?("return") ? @expression.format(indent + 1) : ""}"
-	end
 end
 
 # DspControl ####################################################################################################

@@ -1,9 +1,22 @@
-g = 1
-
-func foo()
-	return 15
+func main()
+	x = compare(2)
+	//f = factorial(3)
 end
 
-func main()
-	a = foo()
+func compare(c)
+	if(c < 1)
+		print("Hi!")
+	end
+end
+
+func printathing(p)
+	print(p)
+end
+
+func factorial(f)
+	print("factorial " + f)
+	if(f > 1)
+		f = f * factorial(f - 1)
+	end
+	return(f)
 end

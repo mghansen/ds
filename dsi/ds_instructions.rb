@@ -1,4 +1,5 @@
 require_relative "ds_contexts"
+require_relative "ds_library"
 
 $logForInstructions = true
 
@@ -36,7 +37,7 @@ class DsiAssignment < DsiInstruction
 		
 		if not lValue == nil
 			logInstructions "DsiAssignment.evaluate #{lValue.getName}"
-			logInstructions @rValue.to_s
+			logInstructions "(raw rValue) " << @rValue.to_s
 			rValue = @rValue.evaluate(state)
 			logInstructions "DsiAssignment.evaluate rValue #{rValue.to_s}"
 
@@ -233,7 +234,7 @@ class DsiExpression < DsiInstruction
 		super()
 	end
 	def evaluate(state)
-		logInstructions "DsiFunctionCall.evauate"
+		logInstructions "DsiExpression.evauate"
 		super
 	end
 end
@@ -250,16 +251,20 @@ class DsiOperation < DsiExpression
 		logInstructions "DsiOperation.evauate #{@operator}"
 		if @leftExpression != nil
 			leftValue = @leftExpression.evaluate(state)
+			logInstructions "DsiOperation.evauate leftValue #{leftValue.to_s}"
 		else
 			leftValue = nil
 		end
 		rightValue = @rightExpression.evaluate(state)
+		logInstructions "DsiOperation.evauate rightValue #{rightValue.to_s}"
+		
 		#DspOperation.@@arithmeticOperators = [ "+", "-", "*", "/", "." ]
 		#DspOperation.@@logicalOperators = [ "!", "<", "<=", "==", ">", ">=", "&&", "||", "^" ]
 		returnValue = nil
 		#puts leftValue.to_s
 		#puts rightValue.to_s
 		if leftValue == nil
+			logInstructions "DsiOperation.evauate unary operator"
 			r = rightValue.getValue
 			case @operator
 			when "!"
@@ -339,24 +344,42 @@ class DsiFunctionCall < DsiExpression
 		@name = name
 		@paramExpressions = paramExpressions
 	end
+	
 	def evaluate(state)
-		logInstructions "DsiFunctionCall.evauate"
-		ret = nil
-		
-		# Find the context for the target function and check parameters
-		functionContext = state.getFunctionContext(@name)
-		if functionContext != nil and functionContext.getParamNames.size == @paramExpressions.size
-			newState = functionContext.makeFunctionState(state.getParentState)
-			# Set up internal state of the function, including named params
-			numExpressions = @paramExpressions.size
-			for i in 0 .. numExpressions - 1
-				newValue = @paramExpressions[i].evaluate(state)
-				newVariable = DsiVariable.new(functionContext.getParamNames[i], newValue)
-				newState.addVariable(newVariable)
+		logInstructions "DsiFunctionCall.evauate #{@name}"
+		if state.isLibraryFunction(@name)
+			logInstructions "DsiFunctionCall.evauate LIBRARY FUNCTION #{@name}"
+			returnValue = evaluateLibraryFunction(state)
+		else
+			# Find the context for the target function and check parameters
+			functionContext = state.getFunctionContext(@name)
+			if functionContext != nil and functionContext.getParamNames.size == @paramExpressions.size
+				newState = functionContext.makeFunctionState(state.getParentState)
+				# Set up internal state of the function, including named params
+				numExpressions = @paramExpressions.size
+				for i in 0 .. numExpressions - 1
+					newValue = @paramExpressions[i].evaluate(state)
+					newVariable = DsiVariable.new(functionContext.getParamNames[i], newValue)
+					newState.addVariable(newVariable)
+				end
 			end
+			returnValue = functionContext.invoke(newState)
 		end
-		
-		returnValue = functionContext.invoke(newState)
+		puts "EVALUATE RETURN VALUE #{returnValue.to_s}"
+		return returnValue
+	end
+	
+	def evaluateLibraryFunction(state)
+		logInstructions "DsiFunctionCall.evauate #{@name}"
+		params = Array.new
+		@paramExpressions.each do |p|
+			newValue = p.evaluate(state)
+			params.push(newValue)
+		end
+		libraryCall = LibraryCall.new(@name, params)
+		libraryCall.invoke(state)
+		returnValue = libraryCall.getReturnValue
+		puts "RETURN VALUE #{returnValue.to_s}"
 		return returnValue
 	end
 end

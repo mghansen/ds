@@ -36,6 +36,7 @@ TODO:
 	Qualified names
 	break
 	continue
-	return
-	
+	return exits immediately
+	Default return if no return value is specified
+	Problems with the factorial test function in sample.ds
 =end

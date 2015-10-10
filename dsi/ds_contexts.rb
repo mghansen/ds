@@ -1,5 +1,6 @@
 require 'set'
 require_relative '../dsp/ds_elements'
+require_relative 'ds_library'
 
 $logForContexts = true
 
@@ -46,6 +47,13 @@ class DsiRuntimeState
 	def getParentState
 		@parentState
 	end
+	
+	def getReturnValue
+		@returnValue
+	end
+	def setReturnValue(value)
+		@returnValue = value
+	end	
 	
 	def getVariables
 		@variables
@@ -137,6 +145,15 @@ class DsiRuntimeState
 		if not @parentState == nil
 			logState "    PARENT STATE"
 			@parentState.dump
+		end
+	end
+	
+	def isLibraryFunction(name)
+		if $libraryFunctions.include?(name)
+			puts "LIBRARY FUNCTION DETECTED #{name}"
+			return true
+		else
+			return false
 		end
 	end
 	
@@ -294,6 +311,7 @@ class DsiFunctionContext < DsiRuntimeContext
 		@paramNames = paramNames
 		@instructions = instructions
 		@className = nil
+		@returnValue = nil
 	end
 
 	def getName
@@ -330,17 +348,14 @@ class DsiFunctionContext < DsiRuntimeContext
 	
 	def invoke(functionState)
 		logState "DsiFunctionContext.invoke #{getName}"
-		# Iterate through the statements in the context
+		# Parameters are passed in through the state
+		functionState.setReturnValue(nil)
+		logState "DsiFunctionContext.invoke NUMBER OF INSTRUCTIONS #{getInstructions.size}"
 		getInstructions.each do |i|
+			logState "DsiFunctionContext.invoke EVALUATING INSTRUCTION #{i.to_s}"
 			i.evaluate(functionState)
 		end
-		returnVariable = functionState.getVariable("`Return")
-		if returnValue != nil
-			returnValue = returnVariable.getValue
-		else
-			returnValue = DsiNumberValue(0)
-		end
-
+		returnValue = functionState.getReturnValue
 		functionState.dump
 		return returnValue
 	end
