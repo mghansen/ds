@@ -7,7 +7,7 @@ def logLib text
 	puts ("L " + text) if $logForLibrary
 end
 
-$libraryFunctions = ["return", "break", "contine", "print" ]
+$libraryFunctions = ["return", "break", "continue", "print" ]
 
 class LibraryCall
 
@@ -29,17 +29,19 @@ class LibraryCall
 			if @params.size > 0
 				logLib "LibraryCall returning a value"
 				state.setReturnValue(@params[0])
-				# TODO: Early return
 			end
+			state.returnFlag = true
 		when "break"
-			# TODO: break out of loop (set flag in the state)
+			logLib "LibraryCall handling 'break'"
+			state.setBreak(true)
 		when "continue"
-			# TODO: continue to next iteration of loop (set flag in the state)
+			logLib "LibraryCall handling 'continue'"
+			state.setContinue(true)
 		when "print"
 			s = ""
 			@params.each { |p| s << p.to_s }
 			# TODO: escape sequences
-			puts s
+			puts "===> " << s
 		else
 			logLib "not recognized"
 		end

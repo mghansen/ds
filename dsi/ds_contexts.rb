@@ -17,6 +17,7 @@ end
 # Runtime states ####################################################################################################
 
 class DsiRuntimeState
+	attr_accessor :returnFlag
 	def initialize(currentScopeName, variables, parentState, globalContext)
 		@currentScopeName = currentScopeName
 		@variables = variables
@@ -26,8 +27,44 @@ class DsiRuntimeState
 		#logState "DsiRuntimeState.initialize variables.size #{variables.size}"
 		logState "DsiRuntimeState.initialize variables=#{variables.to_s}"
 		# TODO: deep copy of variables, default values
+		@returnFlag = false
+		@controlState = Array.new
 	end
 
+	def returning?
+		@returnSignal ? true : false
+	end
+	def beginControlledSection
+		@controlState.push(DsiControlState.new)
+	end
+	def endControlledSection
+		@controlState.pop
+	end
+	def setBreak(value)
+		return if @controlState.size == 0
+		@controlState.last.breakFlag = value
+	end
+	def setContinue(value)
+		return if @controlState.size == 0
+		@controlState.last.continueFlag = value
+	end
+	def testBreak
+		return false if @controlState.size == 0
+		ret = @controlState.last.breakFlag
+		@controlState.last.breakFlag = false
+		return ret
+	end
+	def testContinue
+		return false if @controlState.size == 0
+		ret = @controlState.last.continueFlag
+		@controlState.last.continueFlag = false
+		return ret
+	end	
+	def testShouldLeave?
+		return true if (@controlState.last.breakFlag || @controlState.last.continueFlag)
+		return false
+	end
+	
 	def getName
 		@currentScopeName
 	end
@@ -102,6 +139,16 @@ class DsiRuntimeState
 		end
 	end
 	
+	def replaceVariable(variable)
+		@variables.each do |v|
+			if v.getName.eql?(variable.getName)
+				v.setValue(variable.getValue)
+				break
+			end
+		end
+		logState "DsiRuntimeState.replaceVariable #{variable.getName} not found"
+	end
+	
 	def self.cloneDsiValue(dsiValueIn)
 		if dsiValueIn == nil
 			logState "cloneDsiValue nil"
@@ -157,6 +204,16 @@ class DsiRuntimeState
 		end
 	end
 	
+end
+
+# Break and continue ####################################################################################################
+
+class DsiControlState
+	attr_accessor :breakFlag, :continueFlag
+	def initialize
+		@breakFlag = false
+		@continueFlag = false
+	end
 end
 
 # DsiRuntimeContext (base class) ####################################################################################################
@@ -348,6 +405,7 @@ class DsiFunctionContext < DsiRuntimeContext
 	
 	def invoke(functionState)
 		logState "DsiFunctionContext.invoke #{getName}"
+		functionState.dump
 		# Parameters are passed in through the state
 		functionState.setReturnValue(nil)
 		logState "DsiFunctionContext.invoke NUMBER OF INSTRUCTIONS #{getInstructions.size}"

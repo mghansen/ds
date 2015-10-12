@@ -282,7 +282,7 @@ class Loader
 
 	def loadFunctionContext(declaration, globalLoaderState, classState)
 		# Allowed in a function are variable declarations and instructions
-		logLoader "&&& loadFunctionContext #{declaration.getName}(#{declaration.getParams})"
+		logLoader "loadFunctionContext #{declaration.getName}(#{declaration.getParams})"
 		
 		name = declaration.getName
 		paramNames = declaration.getParams
@@ -294,7 +294,7 @@ class Loader
 		loaderState = ((classState == nil) ? globalLoaderState : classState).makeNewChildState(name)
 		instructions = processStatements(declaration.getStatements, loaderState)
 		#context = DsiFunctionContext.new(name, paramNames, loaderState.getVariableNames, instructions)##
-		logLoader "&&& loadFunctionContext variables #{loaderState.getVariables.to_s}"
+		logLoader "loadFunctionContext variables #{loaderState.getVariables.to_s}"
 
 		context = DsiFunctionContext.new(name, paramNames, loaderState.getVariables, instructions)
 		if not classState == nil

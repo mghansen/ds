@@ -11,10 +11,11 @@ end
 
 class DsiInstruction
 	def initialize
-		logInstructions "DsiInstruction"
+		#logInstructions "DsiInstruction"
 	end
 	def evaluate(state)
-		logInstructions "DsiInstruction.evaluate"
+		return nil if state.returning?
+		#logInstructions "DsiInstruction.evaluate"
 	end
 end
 
@@ -30,6 +31,7 @@ class DsiAssignment < DsiInstruction
 		logInstructions "DsiAssignment.initialize rValue #{@rValue.to_s}"	
 	end
 	def evaluate(state)
+		return nil if state.returning?
 		logInstructions "DsiAssignment.evaluate #{@lValue} #{@operator}"
 		ret = nil
 		# Find the variable in lValue and make the assignment
@@ -52,7 +54,7 @@ class DsiAssignment < DsiInstruction
 			end
 
 		end
-		logInstructions "DsiAssignment.evaluate end"
+		#logInstructions "DsiAssignment.evaluate end"
 	end
 end
 
@@ -60,12 +62,13 @@ end
 
 class DsiIf < DsiInstruction
 	def initialize(conditions)
-		logInstructions "DsiIf"
+		#logInstructions "DsiIf"
 		super()
 		@conditions = conditions
 	end
 	def evaluate(state)
-		logInstructions "DsiIf.evaluate"
+		return nil if state.returning?
+		#logInstructions "DsiIf.evaluate"
 		@conditions.each do |c|
 			logInstructions "DsiIf.evaluate calling evaluate for condition"
 			managed = c.evaluate(state)
@@ -79,13 +82,14 @@ end
 
 class DsiCondition < DsiInstruction
 	def initialize(conditionType, expression, statements)
-		logInstructions "DsiCondition #{conditionType}, #{statements.size} statements"
+		#logInstructions "DsiCondition #{conditionType}, #{statements.size} statements"
 		super()
 		@conditionType = conditionType
 		@expression = expression
 		@statements = statements
 	end
 	def evaluate(state)
+		return nil if state.returning?
 		logInstructions "DsiCondition.EVALUATE"
 		managed = false
 		resultValue = @expression.evaluate(state)
@@ -102,13 +106,14 @@ end
 
 class DsiForIn < DsiInstruction
 	def initialize(variantName, set, statements)
-		logInstructions "DsiForIn #{variantName} in #{set} (NOT IMPLEMENTED)"
+		#logInstructions "DsiForIn #{variantName} in #{set} (NOT IMPLEMENTED)"
 		super()
 		@variantName = variantName
 		@set = set
 		@statements = statements
 	end
 	def evaluate(state)
+		return nil if state.returning?
 		logInstructions "DsiForIn.EVALUATE"
 		state.addVariable(@variantName)
 		# TODO: Arrays
@@ -117,7 +122,7 @@ end
 
 class DsiForFrom < DsiInstruction
 	def initialize(variantName, startExpression, endExpression, stepExpression, excludeLastItem, statements)
-		logInstructions "DsiForFrom #{variantName}"
+		#logInstructions "DsiForFrom #{variantName}"
 		super()
 		@variantName = variantName
 		@startExpression = startExpression
@@ -127,6 +132,7 @@ class DsiForFrom < DsiInstruction
 		@statements = statements
 	end
 	def evaluate(state)
+		return nil if state.returning?
 		logInstructions "DsiForFrom.EVALUATE"
 		startValue = @startExpression.evaluate(state)
 		endValue = @endExpression.evaluate(state)
@@ -139,64 +145,97 @@ class DsiForFrom < DsiInstruction
 		variant = state.getVariable(@variantName)
 		variant.setValue(@startExpression.evaluate(state))
 		
+		state.beginControlledSection
 		if @excludeLastItem
 			# for from to
 			while variant.getValue.neq?(endValue) do
-				@statements.each { |s| s.evaluate(state) }
-				variant.setValue variant.getValue.add(stepValue)
+				@statements.each do |s| 
+					s.evaluate(state)
+					break if state.testShouldLeave?
+				end
+				variant.setValue variant.getValue.add(stepValue) # 2
+				next if state.testContinue
+				break if state.testBreak
 			end
 		else
 			# for from through
 			@statements.each { |s| s.evaluate(state) }
 			while variant.getValue.neq?(endValue) do
 				variant.setValue variant.getValue.add(stepValue)
-				@statements.each { |s| s.evaluate(state) }
+				@statements.each do |s| 
+					s.evaluate(state)
+					break if state.testShouldLeave?
+				end
+				next if state.testContinue
+				break if state.testBreak
 			end
 		end
+		state.endControlledSection
 	end
 end
-
+ 
 class DsiWhile < DsiInstruction
 	def initialize(expression, statements)
-		logInstructions "DsiWhile"
+		#logInstructions "DsiWhile"
 		super()
 		@expression = expression
 		@statements = statements
 	end
 	def evaluate(state)
+		return nil if state.returning?
 		logInstructions "DsiWhile.EVALUATE"
+		state.beginControlledSection
 		while @expression.evaluate(state).isTrue do
-			@statements.each { |s| s.evaluate(state) }
+			@statements.each do |s| 
+				s.evaluate(state)
+				break if state.testShouldLeave?
+			end
+			next if state.testContinue
+			break if state.testBreak
 		end
+		state.endControlledSection
 	end
 end
+
+
+
 
 class DsiDo < DsiInstruction
 	def initialize(statements, expression)
-		logInstructions "DsiDo"
+		#logInstructions "DsiDo"
 		super()
 		@statements = statements
 		@expression = expression
 	end
 	def evaluate(state)
+		return nil if state.returning?
 		logInstructions "DsiWhile.EVALUATE"
+		state.beginControlledSection
 		loop do
-			@statements.each { |s| s.evaluate(state) }
+			@statements.each do |s| 
+				s.evaluate(state)
+				break if state.testShouldLeave?
+			end
+			next if state.testContinue
+			break if state.testBreak
+			
 			if not @expression.evaluate(state).isTrue
 				break
 			end
 		end
+		state.endControlledSection
 	end
 end
 
 class DsiSwitch < DsiInstruction
 	def initialize(expression, cases)
-		logInstructions "DsiSwitch"
+		#logInstructions "DsiSwitch"
 		super()
 		@expression = expression
 		@cases = cases
 	end
 	def evaluate(state)
+		return nil if state.returning?
 		controlValue = @expression.evaluate(state)
 		@cases.each do |c|
 			if c.matches(controlValue, state)
@@ -208,7 +247,7 @@ end
 	
 class DsiCase
 	def initialize(expression, statements)
-		logInstructions "DsiCase"
+		#logInstructions "DsiCase"
 		super()
 		@expression = expression
 		@statements = statements
@@ -230,10 +269,11 @@ end
 
 class DsiExpression < DsiInstruction
 	def initialize
-		logInstructions "DsiExpression"
+		#logInstructions "DsiExpression"
 		super()
 	end
 	def evaluate(state)
+		return nil if state.returning?
 		logInstructions "DsiExpression.evauate"
 		super
 	end
@@ -241,7 +281,7 @@ end
 
 class DsiOperation < DsiExpression
 	def initialize(leftExpression, operator, rightExpression)
-		logInstructions "DsiOperation #{operator}"
+		#logInstructions "DsiOperation #{operator}"
 		super()
 		@leftExpression = leftExpression
 		@operator = operator
@@ -316,7 +356,7 @@ class DsiOperation < DsiExpression
 			end
 			# TODO: Not?
 		elsif (leftValue.is_a?(DsiStringValue) or rightValue.is_a?(DsiStringValue))
-			logInstructions "DsiOperation.evauate string '#{l.to_s}' #{@operator} '#{r.to_s}'"
+			logInstructions "DsiOperation.evauate string '#{leftValue.to_s}' #{@operator} '#{rightValue.to_s}'"
 			case @operator
 			when "+"
 				l = leftValue.to_s
@@ -339,13 +379,14 @@ end
 
 class DsiFunctionCall < DsiExpression
 	def initialize(name, paramExpressions)
-		logInstructions "DsiFunctionCall #{name}"
+		#logInstructions "DsiFunctionCall #{name}"
 		super()
 		@name = name
 		@paramExpressions = paramExpressions
 	end
 	
 	def evaluate(state)
+		return nil if state.returning?
 		logInstructions "DsiFunctionCall.evauate #{@name}"
 		if state.isLibraryFunction(@name)
 			logInstructions "DsiFunctionCall.evauate LIBRARY FUNCTION #{@name}"
@@ -359,13 +400,16 @@ class DsiFunctionCall < DsiExpression
 				numExpressions = @paramExpressions.size
 				for i in 0 .. numExpressions - 1
 					newValue = @paramExpressions[i].evaluate(state)
+					logInstructions "DsiFunctionCall.evauate PARAMETER #{functionContext.getParamNames[i].to_s} / #{newValue.to_s}"
 					newVariable = DsiVariable.new(functionContext.getParamNames[i], newValue)
-					newState.addVariable(newVariable)
+					newState.replaceVariable(newVariable)
 				end
+				logInstructions "DsiFunctionCall.evauate new state:"
+				newState.dump
+				returnValue = functionContext.invoke(newState)
 			end
-			returnValue = functionContext.invoke(newState)
 		end
-		puts "EVALUATE RETURN VALUE #{returnValue.to_s}"
+		logInstructions "EVALUATE RETURN VALUE #{returnValue.to_s}"
 		return returnValue
 	end
 	
@@ -379,7 +423,7 @@ class DsiFunctionCall < DsiExpression
 		libraryCall = LibraryCall.new(@name, params)
 		libraryCall.invoke(state)
 		returnValue = libraryCall.getReturnValue
-		puts "RETURN VALUE #{returnValue.to_s}"
+		logInstructions "RETURN VALUE #{returnValue.to_s}"
 		return returnValue
 	end
 end
@@ -392,7 +436,7 @@ class DsiValue < DsiExpression
 	# Can be number, string, bool, enum, functionCall, array, or var
 	# Part of state
 	def initialize(value)
-		logInstructions "DsiValue"
+		#logInstructions "DsiValue"
 		super()
 		@value = value
 	end
@@ -444,7 +488,7 @@ end
 
 class DsiNumberValue < DsiValue
 	def initialize(value)
-		logInstructions "DsiNumberValue #{value}"
+		#logInstructions "DsiNumberValue #{value}"
 		super
 	end
 	def isTrue
@@ -495,7 +539,7 @@ end
 
 class DsiStringValue < DsiValue
 	def initialize(value)
-		logInstructions "DsiStringValue #{value}"
+		#logInstructions "DsiStringValue #{value}"
 		super
 	end
 	def isTrue
@@ -530,7 +574,7 @@ end
 
 class DsiBoolValue < DsiValue
 	def initialize(value)
-		logInstructions "DsiBoolValue #{value}"
+		#logInstructions "DsiBoolValue #{value}"
 		super
 	end
 	def isTrue
@@ -624,7 +668,7 @@ end
 # Variables exist in the state
 class DsiVariable < DsiExpression
 	def initialize(name, value = nil)
-		logInstructions "DsiVariable #{name}"
+		#logInstructions "DsiVariable #{name}"
 		super()
 		@name = name
 		@value = value

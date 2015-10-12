@@ -771,7 +771,7 @@ class DspFunctionCall < DspExpression
 		super()
 		@name = name
 		@params = params
-		puts "FUNCTION " << name
+		#logElementsTokens "FUNCTION " << name
 
 		consumed = 2
 		if @params.size == 0

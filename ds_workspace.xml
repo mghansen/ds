@@ -14,5 +14,6 @@
         <File name="dsi\ds_loader.rb" />
         <File name="dsi\ds_contexts.rb" />
         <File name="dsi\ds_instructions.rb" />
+        <File name="dsi\ds_library.rb" />
     </Project>
 </NotepadPlus>

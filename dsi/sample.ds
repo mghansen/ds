@@ -1,22 +1,29 @@
 func main()
-	x = compare(2)
-	//f = factorial(3)
+	c = counting()
+	//f = factorial(5)
 end
 
-func compare(c)
-	if(c < 1)
-		print("Hi!")
-	end
-end
-
-func printathing(p)
-	print(p)
+func early()
+	return(11)
+	return(10)
 end
 
 func factorial(f)
-	print("factorial " + f)
+	q = early()
 	if(f > 1)
 		f = f * factorial(f - 1)
 	end
 	return(f)
+end
+
+
+
+func counting()
+	for i from 1 to 6
+		print(i)
+		if(i > 3)
+			continue()
+		end
+		print("SKIPPED THE CONTINUE")
+	end
 end
