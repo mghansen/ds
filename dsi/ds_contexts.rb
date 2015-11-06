@@ -2,7 +2,7 @@ require 'set'
 require_relative '../dsp/ds_elements'
 require_relative 'ds_library'
 
-$logForContexts = true
+$logForContexts = false
 
 def logContext text
 	puts (". " + text) if $logForContexts
@@ -338,7 +338,7 @@ end
 class DsiClassContext < DsiRuntimeContext
 
 	def initialize(name, baseClass, variables, functionContexts)
-		logContext "DsiClassContext #{name} #{baseClass}"
+		logContext "DsiClassContext initialize #{name} #{baseClass}"
 		super(name, variables)
 		@baseClass = baseClass
 		@functionContexts = functionContexts

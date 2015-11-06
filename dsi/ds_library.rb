@@ -1,7 +1,7 @@
 require_relative "ds_contexts"
 require_relative "ds_instructions"
 
-$logForLibrary = true
+$logForLibrary = false
 
 def logLib text
 	puts ("L " + text) if $logForLibrary

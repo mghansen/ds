@@ -1,7 +1,7 @@
 require_relative "ds_contexts"
 require_relative "ds_library"
 
-$logForInstructions = true
+$logForInstructions = false
 
 def logInstructions text
 	puts ("I " + text) if $logForInstructions
@@ -276,6 +276,18 @@ class DsiExpression < DsiInstruction
 		return nil if state.returning?
 		logInstructions "DsiExpression.evauate"
 		super
+	end
+end
+
+class DsiClassAlloc < DsiExpression
+	def initialize(className)
+		super()
+		@className = className
+	end
+	def evaluate(state)
+		# Get class template
+		# Fill in the members
+		# Return the object
 	end
 end
 

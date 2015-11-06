@@ -36,6 +36,10 @@ class LoaderState
 		@stateName = stateName
 	end
 	
+	def getName
+		@stateName
+	end
+	
 	def getVariables
 		@dsiVariables
 	end
@@ -274,7 +278,7 @@ class Loader
 			end
 		end
 		
-		context = DsiClassContext.new(name, baseClass, variableNames, functionContexts)
+		context = DsiClassContext.new(name, baseClass, variables, functionContexts)
 		context
 	end
 	
@@ -290,6 +294,11 @@ class Loader
 			# Includes actions (function calls, assignment, operations, other expressions),
 			#          var declarations (which modify the context),
 			#          control (if, for, while, do, switch, break, continue, return)
+
+		if not classState == nil
+			name = "#{classState.getName()}.#{declaration.getName()}"
+		end
+		logLoader "loadFunctionContext with class name is #{declaration.getName}"
 			
 		loaderState = ((classState == nil) ? globalLoaderState : classState).makeNewChildState(name)
 		instructions = processStatements(declaration.getStatements, loaderState)
@@ -297,9 +306,6 @@ class Loader
 		logLoader "loadFunctionContext variables #{loaderState.getVariables.to_s}"
 
 		context = DsiFunctionContext.new(name, paramNames, loaderState.getVariables, instructions)
-		if not classState == nil
-			#context.setClassName(classState...
-		end
 		# TODO: Load variables?
 		context
 	end
@@ -467,7 +473,10 @@ class Loader
 	def processExpression(expression, loaderState)
 
 		# Expression
-		if expression.is_a?(DspOperation)
+		if expression.is_a?(DspExpressionNew)
+			logLoader "processExpression DspExpressionNew"
+			item = DsiClassAlloc.new(expression.getClassName)
+		elsif expression.is_a?(DspOperation)
 			logLoader "processExpression DspOperation"
 			if expression.getFirstExpression != nil
 				firstExpression = processExpression(expression.getFirstExpression, loaderState)

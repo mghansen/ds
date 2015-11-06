@@ -31,8 +31,8 @@
 			<decl_class> ::= class <class_name> <decl_base_class> { <decl_function> | <decl_var> } end
 				<class_name> ::= <name>
 				<decl_base_class> ::= from <class_name>
-			<decl_var> ::= var <var_name> // assignment?
-			<decl_function> ::= function <name> ( <decl_params> ) <block> end
+			<decl_var> ::= var <var_name> // no assignment
+			<decl_function> ::= func <name> ( <decl_params> ) <block> end
 				<decl_params> ::= <name> { , <name> }
 				<block> ::= { <statement> }
 

@@ -1,6 +1,6 @@
 $indentationLevel = 4
 
-$logForElements = false
+$logForElements = true
 
 def logElements text
 	puts ("E " + text) if $logForElements
@@ -300,7 +300,12 @@ class DspAssignment < DspStatement
 	end
 	def self.parse tokens
 		logElementsTokens "DspAssignment.parse", tokens
-		rValue = DspExpression.parse(tokens[2..-1])
+		rValue = nil
+		if tokens[2].eql?("new")
+			rValue = DspExpressionNew.parse(tokens[2..-1])
+		else
+			rValue = DspExpression.parse(tokens[2..-1])
+		end
 		if rValue.isValid
 			element = DspAssignment.new(tokens[0], tokens[1], rValue)
 		else
@@ -607,6 +612,34 @@ class DspExpression < DspStatement
 		end
 		
 		element
+	end
+end
+
+# DspExpression ####################################################################################################
+
+class DspExpressionNew < DspExpression
+	def initialize(className)
+		super()
+		@className = className
+		consume 2
+	end
+	def getClassName
+		@className
+	end
+	def self.parse tokens
+		logElementsTokens "DspExpressionNew.parse", tokens
+		element = nil
+		if tokens[0].eql?("new") && DspObject.isName(tokens[1])
+			logElements "NEW " + tokens[1]
+			element = DspExpressionNew.new(tokens[1])
+		else
+			element = invalid()
+		end
+		element
+	end
+	def format(indent)
+		s = "#{prefix(indent)}NEW #{@className}\n"
+		s
 	end
 end
 

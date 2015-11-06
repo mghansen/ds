@@ -31,6 +31,7 @@ dsiMain
 
 =begin
 TODO:
+	DsiClassAlloc.evaluate(state)
 	Classes
 	[] operators?
 	Arrays
