@@ -1,0 +1,19 @@
+class Toaster
+	var member
+	
+	func method()
+		print(": SETTIMTE MEMBER")
+		member = 1
+		print(": METHOD " + member)
+	end
+end
+
+func main()
+	print(": Making new Toaster")
+	toasty = new Toaster
+	print(": Setting Toaster.member")
+	toasty.memeber = 3
+	print(": Calling Toaster.method")
+	toasty.method()
+	print(": All done")
+end

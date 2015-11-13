@@ -173,7 +173,7 @@ class DsiRuntimeState
 		elsif dsiValueIn.is_a?(DsiFunctionReferenceValue)
 			logState "cloneDsiValue DsiFunctionReferenceValue #{dsiValueIn.getValue}"
 			dsiValueOut = DsiFunctionReferenceValue.new(dsiValueIn.getValue)
-		elsif dsiValueIn.is_a?(DsiClassValue)
+		elsif dsiValueIn.is_a?(DsiClassValue) # TODO: Clone class?
 			logState "cloneDsiValue DsiClassValue #{dsiValueIn.getValue}"
 			dsiValueOut = DsiClassValue.new(dsiValueIn.getValue)
 		elsif dsiValueIn.is_a?(DsiValue)
@@ -236,7 +236,7 @@ class DsiRuntimeContext
 	def getClassContext(name)
 		if @classContexts != nil
 			@classContexts.each do |c|
-				if f.getName.eql?(name)
+				if c.getName.eql?(name)
 					return c
 				end
 			end
@@ -355,6 +355,16 @@ class DsiClassContext < DsiRuntimeContext
 			@functionContexts.push(functionContext)
 		end
 	end
+	
+	def makeClassState(parentState)
+		logState "DsiClassContext.makeClassState #{getName}"
+		scopeName = getName # TODO: Class names
+		variables = getVariables
+		logState "DsiFunctionContext.makeClassState #{scopeName} variables #{variables.size}, #{variables.to_s}"
+		classState = DsiRuntimeState.new(scopeName, variables, parentState, parentState.getGlobalContext)
+		return classState
+	end
+	
 end	
 
 # DsiFunctionContext ####################################################################################################

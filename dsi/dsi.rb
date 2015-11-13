@@ -31,8 +31,8 @@ dsiMain
 
 =begin
 TODO:
-	DsiClassAlloc.evaluate(state)
 	Classes
+	Class function calls and member variables need to be parsed properly
 	[] operators?
 	Arrays
 	Enums

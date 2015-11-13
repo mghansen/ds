@@ -285,9 +285,9 @@ class DsiClassAlloc < DsiExpression
 		@className = className
 	end
 	def evaluate(state)
-		# Get class template
-		# Fill in the members
-		# Return the object
+		classContext = state.getClassContext(@className)
+		classValue = DsiClassValue.cloneFromContext(classContext, state)
+		return classValue
 	end
 end
 
@@ -391,13 +391,14 @@ end
 
 class DsiFunctionCall < DsiExpression
 	def initialize(name, paramExpressions)
-		#logInstructions "DsiFunctionCall #{name}"
+		logInstructions "DsiFunctionCall #{name}"
 		super()
 		@name = name
 		@paramExpressions = paramExpressions
 	end
 	
 	def evaluate(state)
+		logInstructions "DsiFunctionCall.evauate"
 		return nil if state.returning?
 		logInstructions "DsiFunctionCall.evauate #{@name}"
 		if state.isLibraryFunction(@name)
@@ -669,11 +670,18 @@ end
 
 class DsiClassValue < DsiValue
 	def initialize(value)
-		logInstructions "DsiClassValue"
+		logInstructions "DsiClassValue #{value.to_s}"
+		super
 	end
 	def evaluate(state)
 		logInstructions "DsiClassValue.evaluate #{@value}"
-		super
+		DsiClassValue.new(@value)
+	end
+	def self.cloneFromContext(context, state)
+		logInstructions "DsiClassValue.evaluate #{context.getName()}"
+		classContext = state.getClassContext(context.getName())
+		classState = classContext.makeClassState(state)
+		DsiClassValue.new(classState)
 	end
 end
 

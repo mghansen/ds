@@ -296,7 +296,7 @@ class Loader
 			#          control (if, for, while, do, switch, break, continue, return)
 
 		if not classState == nil
-			name = "#{classState.getName()}.#{declaration.getName()}"
+			name = "#{classState.getName()}~#{declaration.getName()}"
 		end
 		logLoader "loadFunctionContext with class name is #{declaration.getName}"
 			
